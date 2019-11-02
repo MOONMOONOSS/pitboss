@@ -1,0 +1,18 @@
+discord:
+  guild_id: 193277318494420992 # MOONMOON Official Discord
+  admin_roles:
+    - 193277912236032001  # Moderator
+    - 194376397215629312  # Administrator
+    - 193278247646134272  # Moon's Rank
+    - 441310174385405963  # Community Organizer
+  admin_users:
+    - 82982763317166080   # Dunkel
+  token: token
+  ban_msg: "I have detected that you have left the MOONMOON Discord before a moderator could issue proper punishment. As a result, you have been banned from the MOONMOON Discord. You may dispute this ban by emailing `moonoverwatch@gmail.com`. **Moderators do not review ban appeals.**\n**This is an automated message.**"
+  pit_msg: "I have detected that you have left the MOONMOON Discord while pitted. Deliberately evading punishment can result in a permanent ban. Moderators have been made aware of this incident.\n**This is an automated message.**"
+mysql:
+  username: admin
+  password: password
+  endpoint: test.com
+  port: 3306
+  database: pitboss
