@@ -26,6 +26,7 @@ use serenity::{
   },
   model::{
     channel::Message,
+    gateway::Ready,
     guild::Member,
     id::{GuildId, UserId, RoleId},
     user::User,
@@ -74,6 +75,10 @@ impl EventHandler for Handler {
         println!("HEY! Record found for {}!", user_id);
       }
     }
+  }
+
+  fn ready(&self, _: Context, ready: Ready) {
+    println!("{} reporting for duty!", ready.user.name);
   }
 }
 
