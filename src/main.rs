@@ -55,7 +55,7 @@ impl EventHandler for Handler {
     use self::schema::pitboss::dsl::*;
 
     // Stop execution if the user isn't joining the target guild
-    if *guild_id.as_u64() != CONFIG.discord.guild_id { return }
+    if guild_id != GuildId(CONFIG.discord.guild_id) { return }
 
     println!("User {} has joined Guild {}", new_member.user_id(), guild_id);
 
