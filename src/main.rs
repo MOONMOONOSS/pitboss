@@ -5,17 +5,21 @@ pub mod schema;
 pub mod models;
 
 use diesel::{
+  prelude::*,
   mysql::MysqlConnection,
   r2d2::{
     ConnectionManager,
     Pool,
   },
+  RunQueryDsl,
 };
 use dotenv::dotenv;
 use lazy_static::lazy_static;
 use self::models::{
   ConfigSchema,
-  DiscordConfig,
+  NewUserBan,
+  NewUserPit,
+  User as UserModel,
 };
 use serenity::{
   client::Client,
@@ -58,7 +62,49 @@ impl EventHandler for Handler {}
 
 lazy_static!{
   static ref CONFIG: ConfigSchema = get_config();
-  static ref CONN: Pool<ConnectionManager<MysqlConnection>> = establish_connection();
+  static ref POOL: Pool<ConnectionManager<MysqlConnection>> = establish_connection();
+}
+
+fn add_ban(id: u64, moderator: u64) -> UserModel {
+  use schema::pitboss;
+
+  let new_usr = NewUserBan {
+    id,
+    banned: true,
+    moderator,
+  };
+  let conn = POOL.get().unwrap();
+
+  diesel::insert_into(pitboss::table)
+    .values(&new_usr)
+    .execute(&conn)
+    .expect("Error saving user ban.");
+  
+  pitboss::table
+    .order(pitboss::id.desc())
+    .first(&conn)
+    .unwrap()
+}
+
+fn add_pit(id: u64, moderator: u64) -> UserModel {
+  use schema::pitboss;
+
+  let new_usr = NewUserPit {
+    id,
+    pitted: true,
+    moderator,
+  };
+  let conn = POOL.get().unwrap();
+
+  diesel::insert_into(pitboss::table)
+    .values(&new_usr)
+    .execute(&conn)
+    .expect("Error saving user ban.");
+  
+  pitboss::table
+    .order(pitboss::id.desc())
+    .first(&conn)
+    .unwrap()
 }
 
 fn establish_connection() -> Pool<ConnectionManager<MysqlConnection>> {
