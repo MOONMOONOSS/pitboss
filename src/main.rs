@@ -1,5 +1,8 @@
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::{
+  Deserialize,
+  Serialize,
+};
 use serenity::{
   client::Client,
   framework::standard::{
@@ -39,7 +42,6 @@ impl EventHandler for Handler {}
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct ConfigSchema {
   discord: DiscordConfig,
-  mysql: SqlConfig,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -50,15 +52,6 @@ struct DiscordConfig {
   token: String,
   ban_msg: String,
   pit_msg: String,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct SqlConfig {
-  username: String,
-  password: String,
-  endpoint: String,
-  port: u16,
-  database: String,
 }
 
 lazy_static!{
