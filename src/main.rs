@@ -50,7 +50,29 @@ group!({
 
 struct Handler;
 
-impl EventHandler for Handler {}
+impl EventHandler for Handler {
+  fn guild_member_addition(&self, context: Context, guild_id: GuildId, new_member: Member) {
+    use self::schema::pitboss::dsl::*;
+
+    println!("User {} has joined Guild {}", new_member.user_id(), guild_id);
+
+    let conn = POOL.get().unwrap();
+    let user_id = *new_member
+      .user_id()
+      .as_u64();
+    let res = pitboss
+      .filter(id.eq(user_id))
+      .load::<UserModel>(&conn)
+      .expect("Error loading user info");
+    
+    match res.len() {
+      0 => println!("No records found for {}", user_id),
+      _ => {
+        println!("HEY! Record found for {}!", user_id);
+      }
+    }
+  }
+}
 
 lazy_static!{
   static ref CONFIG: ConfigSchema = get_config();
