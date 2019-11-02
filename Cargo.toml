@@ -20,4 +20,4 @@ url = "1.7.2"
 
 [dependencies.diesel]
 version = "1"
-features = ["mysql"]
+features = ["mysql", "r2d2"]

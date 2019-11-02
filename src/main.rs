@@ -1,3 +1,17 @@
+#[macro_use]
+extern crate diesel;
+
+pub mod schema;
+pub mod models;
+
+use diesel::{
+  mysql::MysqlConnection,
+  r2d2::{
+    ConnectionManager,
+    Pool,
+  },
+};
+use dotenv::dotenv;
 use lazy_static::lazy_static;
 use serde::{
   Deserialize,
@@ -21,7 +35,10 @@ use serenity::{
   },
   prelude::{Context, EventHandler},
 };
-use std::fs::File;
+use std::{
+  env,
+  fs::File,
+};
 
 group!({
   name: "general",
@@ -56,6 +73,18 @@ struct DiscordConfig {
 
 lazy_static!{
   static ref CONFIG: ConfigSchema = get_config();
+  static ref CONN: Pool<ConnectionManager<MysqlConnection>> = establish_connection();
+}
+
+fn establish_connection() -> Pool<ConnectionManager<MysqlConnection>> {
+  dotenv().ok();
+
+  let db_url = env::var("DATABASE_URL")
+    .expect("DATABASE_URL env var must be set");
+  let manager = ConnectionManager::<MysqlConnection>::new(db_url);
+  Pool::builder()
+    .build(manager)
+    .expect("Failed to create pool")
 }
 
 fn get_config() -> ConfigSchema {
