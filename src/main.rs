@@ -13,9 +13,9 @@ use diesel::{
 };
 use dotenv::dotenv;
 use lazy_static::lazy_static;
-use serde::{
-  Deserialize,
-  Serialize,
+use self::models::{
+  ConfigSchema,
+  DiscordConfig,
 };
 use serenity::{
   client::Client,
@@ -55,21 +55,6 @@ group!({
 struct Handler;
 
 impl EventHandler for Handler {}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct ConfigSchema {
-  discord: DiscordConfig,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct DiscordConfig {
-  guild_id: u64,
-  admin_roles: Vec<u64>,
-  admin_users: Vec<u64>,
-  token: String,
-  ban_msg: String,
-  pit_msg: String,
-}
 
 lazy_static!{
   static ref CONFIG: ConfigSchema = get_config();
