@@ -21,8 +21,8 @@ use self::models::{
 use serenity::{
   client::Client,
   framework::standard::{
-    macros::{command, group},
-    Args, CommandResult, StandardFramework,
+    macros::{command, check, group},
+    Args, CommandResult, Check, CheckResult, CommandOptions, StandardFramework,
   },
   model::{
     channel::Message,
@@ -155,6 +155,43 @@ fn rem_usr(id: u64) {
     .expect("Error removing ban/pit");
 }
 
+#[check]
+#[name = "Admin"]
+fn is_authorized_usr(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+  let mut is_admin = false;
+  // Checks if the issuing user has one of the admin roles defined in the config
+  'role_check: for role in &CONFIG.discord.admin_roles {
+    if msg.member(&ctx.cache)
+      .unwrap()
+      .roles
+      .contains(&RoleId(*role)) {
+        is_admin = true;
+
+        break 'role_check
+      }
+  }
+  // Don't perform this admin check if we know they are admin already
+  if !is_admin {
+    // Checks if the issuing user is one of the authorized users as defined in the config
+    'user_check: for user in &CONFIG.discord.admin_users {
+      if msg.author.id == UserId(*user) {
+        is_admin = true;
+
+        break 'user_check
+      }
+    }
+  }
+  // Checks if the issuing user issued the command from the correct guild
+  if msg.guild_id.unwrap() != GuildId(CONFIG.discord.guild_id) {
+    return CheckResult::new_log("User issued command from wrong guild")
+  }
+
+  match is_admin {
+    true => return true.into(),
+    false => return CheckResult::new_log("User lacked permission")
+  }
+}
+
 fn main() {
   // Bot login
   let mut client: Client =
@@ -173,21 +210,42 @@ fn main() {
 }
 
 #[command]
+#[min_args(1)]
+#[max_args(1)]
+#[only_in(guilds)]
+#[bucket = "pitboss"]
+#[checks(Admin)]
 fn ban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
 
 #[command]
+#[min_args(1)]
+#[max_args(1)]
+#[only_in(guilds)]
+#[bucket = "pitboss"]
+#[checks(Admin)]
 fn unban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
 
 #[command]
+#[min_args(1)]
+#[max_args(1)]
+#[only_in(guilds)]
+#[bucket = "pitboss"]
+#[checks(Admin)]
 fn pit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+  println!("Test 123!");
   Ok(())
 }
 
 #[command]
+#[min_args(1)]
+#[max_args(1)]
+#[only_in(guilds)]
+#[bucket = "pitboss"]
+#[checks(Admin)]
 fn unpit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
