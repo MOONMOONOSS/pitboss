@@ -123,6 +123,15 @@ fn get_config() -> ConfigSchema {
   serde_yaml::from_reader(&f).unwrap()
 }
 
+fn rem_usr(id: u64) {
+  use self::schema::pitboss::dsl::*;
+
+  let conn = POOL.get().unwrap();
+  let num_deleted = diesel::delete(pitboss.filter(id.eq(id)))
+    .execute(&conn)
+    .expect("Error removing ban/pit");
+}
+
 fn main() {
   // Bot login
   let mut client: Client =
