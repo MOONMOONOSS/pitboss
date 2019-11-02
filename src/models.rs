@@ -2,15 +2,34 @@ use serde::{
   Deserialize,
   Serialize,
 };
+use super::schema::pitboss;
 
+// Diesel Models
 #[derive(Queryable)]
 pub struct User {
   pub id: u64,
+  pub banned: Option<bool>,
+  pub pitted: Option<bool>,
+  pub moderator: u64,
+}
+
+#[derive(Insertable)]
+#[table_name="pitboss"]
+pub struct NewUserBan {
+  pub id: u64,
   pub banned: bool,
+  pub moderator: u64,
+}
+
+#[derive(Insertable)]
+#[table_name="pitboss"]
+pub struct NewUserPit {
+  pub id: u64,
   pub pitted: bool,
   pub moderator: u64,
 }
 
+// SerdeYAML Models
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ConfigSchema {
   pub discord: DiscordConfig,
