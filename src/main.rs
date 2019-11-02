@@ -48,10 +48,9 @@ group!({
   name: "general",
   options: {},
   commands: [
-    banonjoin,
-    cancelban,
+    ban,
+    unban,
     pit,
-    pitonjoin,
     unpit,
   ],
 });
@@ -142,22 +141,17 @@ fn main() {
 }
 
 #[command]
-fn banonjoin(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+fn ban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
 
 #[command]
-fn cancelban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+fn unban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
 
 #[command]
 fn pit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-  Ok(())
-}
-
-#[command]
-fn pitonjoin(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
 
