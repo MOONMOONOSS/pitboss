@@ -7,10 +7,7 @@ pub mod models;
 use diesel::{
   prelude::*,
   mysql::MysqlConnection,
-  r2d2::{
-    ConnectionManager,
-    Pool,
-  },
+  r2d2::{ConnectionManager, Pool},
   RunQueryDsl,
 };
 use dotenv::dotenv;
@@ -30,11 +27,7 @@ use serenity::{
   model::{
     channel::Message,
     guild::Member,
-    id::{
-      GuildId,
-      UserId,
-      RoleId,
-    },
+    id::{GuildId, UserId, RoleId},
     user::User,
   },
   prelude::{Context, EventHandler},
