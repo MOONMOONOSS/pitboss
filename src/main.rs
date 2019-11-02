@@ -54,6 +54,9 @@ impl EventHandler for Handler {
   fn guild_member_addition(&self, context: Context, guild_id: GuildId, new_member: Member) {
     use self::schema::pitboss::dsl::*;
 
+    // Stop execution if the user isn't joining the target guild
+    if *guild_id.as_u64() != CONFIG.discord.guild_id { return }
+
     println!("User {} has joined Guild {}", new_member.user_id(), guild_id);
 
     let conn = POOL.get().unwrap();
