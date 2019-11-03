@@ -279,62 +279,82 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
   match add_pit(*usr.as_u64(), *msg.author.id.as_u64()) {
     Ok(v) => {
-      let mut member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64())?;
-      
-      // Add pit role to user
-      match member.add_role(&ctx, CONFIG.discord.pit_role) {
-        Ok(_) => (),
-        Err(e) => {
+      let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
+
+      match member {
+        Ok(mut me) => {
+          // Add pit role to user
+          match me.add_role(&ctx, CONFIG.discord.pit_role) {
+            Ok(_) => (),
+            Err(e) => {
+              msg.channel_id.send_message(&ctx, |m| {
+                m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                m.embed(|e| {
+                  e.title("Pitting failed!");
+                  e.description(format!("<@{}> has NOT been pitted.\nPlease try again later", *usr.as_u64()));
+                  e.color(Colour::new(0xFF0000));
+                  e.footer(|f| {
+                    f.text(EMBED_FOOTER)
+                  })
+                })
+              })?;
+
+              rem_usr(*usr.as_u64())?;
+              
+              return Ok(())
+            },
+          }
+
+          // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
-            m.content(format!("**TRACE LOG**\n```{:?}```", e));
             m.embed(|e| {
-              e.title("Pitting failed!");
-              e.description(format!("<@{}> has NOT been pitted.\nPlease try again later", *usr.as_u64()));
-              e.color(Colour::new(0xFF0000));
+              e.title("Success");
+              e.description(format!("<@{}> has been pitted.", *usr.as_u64()));
+              e.color(Colour::new(0x00960C));
               e.footer(|f| {
                 f.text(EMBED_FOOTER)
               })
             })
           })?;
 
-          rem_usr(*usr.as_u64())?;
-          
+          // Direct message user to explain they have been pitted.
+          let usr_obj = me
+            .user_id()
+            .to_user(&ctx)?;
+          usr_obj.direct_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title(&CONFIG.discord.pit_msg.title);
+              e.description(&CONFIG.discord.pit_msg.subtitle);
+              e.color(Colour::new(CONFIG.discord.pit_msg.color));
+              e.field(&CONFIG.discord.pit_msg.attract, &CONFIG.discord.pit_msg.warning, true);
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
+          return Ok(())
+        },
+        Err(e) => {
+          // Reply to moderator
+          msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title("Pitboss Success");
+              e.description(format!("<@{}> has been added to the Pitboss watchlist.", *usr.as_u64()));
+              e.field("Pitboss checks users joining the server and takes action if a match is found.", "You will be alerted if this user joins the server.", true);
+              e.color(Colour::new(0xE79900));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
           return Ok(())
         },
       }
-
-      // Reply to moderator
-      msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-          e.title("Success");
-          e.description(format!("<@{}> has been pitted.", *usr.as_u64()));
-          e.color(Colour::new(0x00960C));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
-        })
-      })?;
-
-      // Direct message user to explain they have been pitted.
-      let usr_obj = member
-        .user_id()
-        .to_user(&ctx)?;
-      usr_obj.direct_message(&ctx, |m| {
-        m.embed(|e| {
-          e.title(&CONFIG.discord.pit_msg.title);
-          e.description(&CONFIG.discord.pit_msg.subtitle);
-          e.color(Colour::new(CONFIG.discord.pit_msg.color));
-          e.field(&CONFIG.discord.pit_msg.attract, &CONFIG.discord.pit_msg.warning, true);
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
-        })
-      })?;
-
-      return Ok(())
     },
     Err(e) => {
-      println!("Error adding ban: {:?}", e);
+      println!("Error adding pit: {:?}", e);
 
       msg.channel_id.send_message(&ctx, |m| {
         m.content(format!("**TRACE LOG**\n```{:?}```", e));
@@ -418,7 +438,7 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
       return Ok(())
     },
     Err(e) => {
-      println!("Error removing ban: {:?}", e);
+      println!("Error removing pit: {:?}", e);
 
       msg.channel_id.send_message(&ctx, |m| {
         m.content(format!("**TRACE LOG**\n```{:?}```", e));
