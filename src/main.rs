@@ -260,10 +260,10 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
   match add_ban(*usr.as_u64(), *msg.author.id.as_u64()) {
     Ok(v) => {
-      let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64())?;
+      let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
       
       match member {
-        Ok(mut me) => {
+        Ok(me) => {
           // Direct message user to explain they have been banned.
           // MUST happen before banning the user since we can't send messages to just anybody.
           let usr_obj = me
@@ -331,6 +331,8 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
               })
             })
           })?;
+
+          return Ok(())
         },
       }
     },
