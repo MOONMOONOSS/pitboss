@@ -192,6 +192,35 @@ fn is_authorized_usr(ctx: &mut Context, msg: &Message, _: &mut Args, _: &Command
   }
 }
 
+#[check]
+#[name = "UserMention"]
+fn is_usr_mention(_: &mut Context, msg: &Message, args: &mut Args, _: &CommandOptions) -> CheckResult {
+  let mut usr = args
+    .single_quoted::<String>()
+    .unwrap();
+  let prefix = usr
+    .get(0..=1)
+    .unwrap()
+    .to_string();
+  let postfix = usr
+    .chars()
+    .last()
+    .unwrap()
+    .to_string();
+  // Grab all numbers from the user string
+  usr.retain(|c| c.to_string().parse::<i8>().is_ok());
+  // Parse the user string into a UserId
+  let usr = UserId(usr.parse::<u64>().unwrap());
+  // Rewind so the function can access the args after we finish
+  args.rewind();
+  
+  // Is the argument a valid @ mention and not a self @ mention?
+  match prefix == *"<@" && postfix == *">" && msg.author.id != usr {
+    true => return true.into(),
+    false => return CheckResult::new_log("Supplied arguments doesn't include a mentioned user")
+  }
+}
+
 fn main() {
   // Bot login
   let mut client: Client =
@@ -214,7 +243,7 @@ fn main() {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin)]
+#[checks(Admin, UserMention)]
 fn ban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
@@ -224,7 +253,7 @@ fn ban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin)]
+#[checks(Admin, UserMention)]
 fn unban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
@@ -234,9 +263,10 @@ fn unban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin)]
-fn pit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-  println!("Test 123!");
+#[checks(Admin, UserMention)]
+fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+  println!("Argument: {}", args.single_quoted::<String>().unwrap());
+  
   Ok(())
 }
 
@@ -245,7 +275,7 @@ fn pit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin)]
+#[checks(Admin, UserMention)]
 fn unpit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
   Ok(())
 }
