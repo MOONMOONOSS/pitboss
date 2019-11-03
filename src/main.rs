@@ -193,7 +193,7 @@ fn is_authorized_usr(ctx: &mut Context, msg: &Message, _: &mut Args, _: &Command
 #[check]
 #[name = "UserMention"]
 fn is_usr_mention(_: &mut Context, msg: &Message, args: &mut Args, _: &CommandOptions) -> CheckResult {
-  let mut usr = args
+  let usr = args
     .single_quoted::<String>()
     .unwrap();
   let prefix = usr
@@ -272,9 +272,28 @@ fn unban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[bucket = "pitboss"]
 #[checks(Admin, UserMention)]
 fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-  println!("Argument: {}", args.single_quoted::<String>().unwrap());
-  
-  Ok(())
+  let usr = mention_to_user_id(&mut args);
+
+  match add_pit(*usr.as_u64(), *msg.author.id.as_u64()) {
+    Ok(v) => {
+      msg.reply(
+        &ctx,
+        format!("<@{}> has been pitted.", *usr.as_u64()),
+      )?;
+
+      return Ok(())
+    },
+    Err(e) => {
+      println!("Error adding ban: {:?}", e);
+
+      msg.reply(
+        &ctx,
+        format!("Pitting failed. Please try again later.\n**TRACE LOG**\n```{:?}```", e),
+      )?;
+
+      return Ok(())
+    }
+  }
 }
 
 #[command]
@@ -283,6 +302,29 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in(guilds)]
 #[bucket = "pitboss"]
 #[checks(Admin, UserMention)]
-fn unpit(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+  let usr = mention_to_user_id(&mut args);
+
+  match rem_usr(*usr.as_u64()) {
+    Ok(v) => {
+      msg.reply(
+        &ctx,
+        format!("<@{}> has been un-pitted.", *usr.as_u64()),
+      )?;
+
+      return Ok(())
+    },
+    Err(e) => {
+      println!("Error removing ban: {:?}", e);
+
+      msg.reply(
+        &ctx,
+        format!("Pitting removal failed. **User may still be pitted.** Please try again later.\n**TRACE LOG**\n```{:?}```", e),
+      )?;
+
+      return Ok(())
+    }
+  }
+
   Ok(())
 }
