@@ -384,58 +384,78 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
   match rem_usr(*usr.as_u64()) {
     Ok(v) => {
-      let mut member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64())?;
+      let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
 
-      // Remove pit role from user
-      match member.remove_role(&ctx, CONFIG.discord.pit_role) {
-        Ok(_) => (),
-        Err(e) => {
+      match member {
+        Ok(mut me) => {
+
+          // Remove pit role from user
+          match me.remove_role(&ctx, CONFIG.discord.pit_role) {
+            Ok(_) => (),
+            Err(e) => {
+              msg.channel_id.send_message(&ctx, |m| {
+                m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                m.embed(|e| {
+                  e.title("Pit removal failed!");
+                  e.field("User may still be pitted", "Please try again later", true);
+                  e.color(Colour::new(0xFF0000));
+                  e.footer(|f| {
+                    f.text(EMBED_FOOTER)
+                  })
+                })
+              })?;
+
+              add_pit(*usr.as_u64(), *msg.author.id.as_u64())?;
+              
+              return Ok(())
+            },
+          }
+
           msg.channel_id.send_message(&ctx, |m| {
-            m.content(format!("**TRACE LOG**\n```{:?}```", e));
             m.embed(|e| {
-              e.title("Pit removal failed!");
-              e.field("User may still be pitted", "Please try again later", true);
-              e.color(Colour::new(0xFF0000));
+              e.title("Success");
+              e.description(format!("<@{}> has been un-pitted.", *usr.as_u64()));
+              e.color(Colour::new(0x00960C));
               e.footer(|f| {
                 f.text(EMBED_FOOTER)
               })
             })
           })?;
 
-          add_pit(*usr.as_u64(), *msg.author.id.as_u64())?;
-          
+          // Direct message user to explain they have been released from the pit.
+          let usr_obj = me
+            .user_id()
+            .to_user(&ctx)?;
+          usr_obj.direct_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title(&CONFIG.discord.unpit_msg.title);
+              e.description(&CONFIG.discord.unpit_msg.subtitle);
+              e.color(Colour::new(CONFIG.discord.unpit_msg.color));
+              e.field(&CONFIG.discord.unpit_msg.attract, &CONFIG.discord.unpit_msg.warning, true);
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
+          return Ok(())
+        },
+        Err(e) => {
+          // Reply to moderator
+          msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title("Success");
+              e.description(format!("<@{}> has been removed from the Pitboss watchlist.", *usr.as_u64()));
+              e.color(Colour::new(0x00960C));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
           return Ok(())
         },
       }
-
-      msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-          e.title("Success");
-          e.description(format!("<@{}> has been un-pitted.", *usr.as_u64()));
-          e.color(Colour::new(0x00960C));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
-        })
-      })?;
-
-      // Direct message user to explain they have been released from the pit.
-      let usr_obj = member
-        .user_id()
-        .to_user(&ctx)?;
-      usr_obj.direct_message(&ctx, |m| {
-        m.embed(|e| {
-          e.title(&CONFIG.discord.unpit_msg.title);
-          e.description(&CONFIG.discord.unpit_msg.subtitle);
-          e.color(Colour::new(CONFIG.discord.unpit_msg.color));
-          e.field(&CONFIG.discord.unpit_msg.attract, &CONFIG.discord.unpit_msg.warning, true);
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
-        })
-      })?;
-
-      return Ok(())
     },
     Err(e) => {
       println!("Error removing pit: {:?}", e);
@@ -453,6 +473,6 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
       })?;
 
       return Ok(())
-    }
+    },
   }
 }
