@@ -40,6 +40,7 @@ pub struct DiscordConfig {
   pub guild_id: u64,
   pub admin_roles: Vec<u64>,
   pub admin_users: Vec<u64>,
+  pub report_channel: u64,
   pub pit_role: u64,
   pub token: String,
   pub ban_evade_msg: Embed,

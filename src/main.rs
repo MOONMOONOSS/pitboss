@@ -28,7 +28,7 @@ use serenity::{
     channel::Message,
     gateway::Ready,
     guild::Member,
-    id::{GuildId, UserId, RoleId},
+    id::{ChannelId, GuildId, UserId, RoleId},
     user::User,
   },
   prelude::{Context, EventHandler},
@@ -55,7 +55,7 @@ group!({
 struct Handler;
 
 impl EventHandler for Handler {
-  fn guild_member_addition(&self, context: Context, guild_id: GuildId, new_member: Member) {
+  fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
     use self::schema::pitboss::dsl::*;
 
     // Stop execution if the user isn't joining the target guild
@@ -76,6 +76,119 @@ impl EventHandler for Handler {
       0 => println!("No records found for {}", user_id),
       _ => {
         println!("HEY! Record found for {}!", user_id);
+
+        match res[0].banned {
+          true => {
+            let usr = new_member.user_id();
+            let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64()).unwrap();
+
+            let usr_obj = member
+              .user_id()
+              .to_user(&ctx)
+              .unwrap();
+            let _ = usr_obj.direct_message(&ctx, |m| {
+              m.embed(|e| {
+                e.title(&CONFIG.discord.ban_evade_msg.title);
+                e.description(&CONFIG.discord.ban_evade_msg.subtitle);
+                e.color(Colour::new(CONFIG.discord.ban_evade_msg.color));
+                e.field(&CONFIG.discord.ban_evade_msg.attract, &CONFIG.discord.ban_evade_msg.warning, true);
+                e.footer(|f| {
+                  f.text(EMBED_FOOTER)
+                })
+              })
+            });
+
+            match member.ban(&ctx, &7) {
+              Ok(_) => (),
+              Err(e) => {
+                let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+                  m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                  m.embed(|e| {
+                    e.title("Banning failed!");
+                    e.description(format!("<@{}> is on the Banboss watchlist and wasn't banned!", *usr.as_u64()));
+                    e.color(Colour::new(0xFF0000));
+                    e.footer(|f| {
+                      f.text(EMBED_FOOTER)
+                    })
+                  })
+                });
+
+                return
+              }
+            }
+
+            let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+              m.embed(|e| {
+                e.title("Banboss Success");
+                e.description(format!("<@{}> is on the Banboss watchlist and was banned.", *usr.as_u64()));
+                e.color(Colour::new(0x00960C));
+                e.footer(|f| {
+                  f.text(EMBED_FOOTER)
+                })
+              })
+            });
+
+            return
+          },
+          false => {},
+        }
+        match res[0].pitted {
+          true => {
+            let usr = new_member.user_id();
+            let mut member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64()).unwrap();
+
+            // Add pit role to user
+            match member.add_role(&ctx, CONFIG.discord.pit_role) {
+              Ok(_) => (),
+              Err(e) => {
+                let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+                  m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                  m.embed(|e| {
+                    e.title("Pitting failed!");
+                    e.description(format!("<@{}> is on the Pitboss watchlist and wasn't pitted!", *usr.as_u64()));
+                    e.color(Colour::new(0xFF0000));
+                    e.footer(|f| {
+                      f.text(EMBED_FOOTER)
+                    })
+                  })
+                });
+                
+                return
+              },
+            }
+
+            // Direct message user to explain they have been pitted.
+            let usr_obj = member
+              .user_id()
+              .to_user(&ctx)
+              .unwrap();
+            let _ = usr_obj.direct_message(&ctx, |m| {
+              m.embed(|e| {
+                e.title(&CONFIG.discord.pit_evade_msg.title);
+                e.description(&CONFIG.discord.pit_evade_msg.subtitle);
+                e.color(Colour::new(CONFIG.discord.pit_evade_msg.color));
+                e.field(&CONFIG.discord.pit_evade_msg.attract, &CONFIG.discord.pit_evade_msg.warning, true);
+                e.footer(|f| {
+                  f.text(EMBED_FOOTER)
+                })
+              })
+            });
+            let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+              m.embed(|e| {
+                e.title("Pitboss Success");
+                e.description(format!("<@{}> is on the Pitboss watchlist and was pitted", *usr.as_u64()));
+                e.color(Colour::new(0x00960C));
+                e.footer(|f| {
+                  f.text(EMBED_FOOTER)
+                })
+              })
+            });
+
+            return
+
+          },
+          false => {},
+        }
       }
     }
   }
@@ -147,11 +260,11 @@ fn get_config() -> ConfigSchema {
   serde_yaml::from_reader(&f).unwrap()
 }
 
-fn rem_usr(id: u64) -> Result<(), diesel::result::Error> {
+fn rem_usr(_id: u64) -> Result<(), diesel::result::Error> {
   use self::schema::pitboss::dsl::*;
 
   let conn = POOL.get().unwrap();
-  r#try!(diesel::delete(pitboss.filter(id.eq(id)))
+  r#try!(diesel::delete(pitboss.filter(id.eq(_id)))
     .execute(&conn));
 
   Ok(())
