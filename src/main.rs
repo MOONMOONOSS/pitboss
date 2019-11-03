@@ -205,18 +205,27 @@ fn is_usr_mention(_: &mut Context, msg: &Message, args: &mut Args, _: &CommandOp
     .last()
     .unwrap()
     .to_string();
-  // Grab all numbers from the user string
-  usr.retain(|c| c.to_string().parse::<i8>().is_ok());
-  // Parse the user string into a UserId
-  let usr = UserId(usr.parse::<u64>().unwrap());
-  // Rewind so the function can access the args after we finish
+  // Rewind so other functions can access the args after we finish
   args.rewind();
+  // Parse the user string into a UserId
+  let usr = mention_to_user_id(args);
   
   // Is the argument a valid @ mention and not a self @ mention?
   match prefix == *"<@" && postfix == *">" && msg.author.id != usr {
     true => return true.into(),
     false => return CheckResult::new_log("Supplied arguments doesn't include a mentioned user")
   }
+}
+
+fn mention_to_user_id(args: &mut Args) -> UserId {
+  let mut usr = args
+  .single_quoted::<String>()
+  .unwrap();
+
+  args.rewind();
+  usr.retain(|c| c.to_string().parse::<i8>().is_ok());
+
+  UserId(usr.parse::<u64>().unwrap())
 }
 
 fn main() {
