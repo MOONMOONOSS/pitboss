@@ -7,6 +7,35 @@ discord:
     - 441310174385405963  # Community Organizer
   admin_users:
     - 82982763317166080   # Dunkel
+  pit_role: 195419638182576128 # BACK TO THE PIT
   token: token
-  ban_msg: "I have detected that you have left the MOONMOON Discord before a moderator could issue proper punishment. As a result, you have been banned from the MOONMOON Discord. You may dispute this ban by emailing `moonoverwatch@gmail.com`. **Moderators do not review ban appeals.**\n**This is an automated message.**"
-  pit_msg: "I have detected that you have left the MOONMOON Discord while pitted. Deliberately evading punishment can result in a permanent ban. Moderators have been made aware of this incident.\n**This is an automated message.**"
+  ban_evade_msg: 
+    title: MOONMOON Moderation Notice
+    subtitle: Notice of Adverse Action
+    color: 0xFF0000
+    attract: I have detected that you have left the MOONMOON Discord before a moderator could issue proper punishment. As a result, you have been banned from the MOONMOON Discord. You may dispute this ban by emailing `moonoverwatch@gmail.com`.
+    warning: "NOTE: Moderators do not review ban appeals."
+  ban_msg: 
+    title: MOONMOON Moderation Notice
+    subtitle: Notice of Adverse Action
+    color: 0xFF0000
+    attract: You have been banned by a Mooncord moderator. You may dispute this ban by emailing `moonoverwatch@gmail.com`.
+    warning: "NOTE: Moderators do not review ban appeals."
+  pit_evade_msg:
+    title: MOONMOON Moderation Notice
+    subtitle: About Pit Evasion
+    color: 0xFF0000
+    attract: I have detected that you have left the MOONMOON Discord while pitted. Deliberately evading punishment can result in a permanent ban.
+    warning: "NOTE: Moderators have been made aware of this incident."
+  pit_msg:
+    title: MOONMOON Moderation Notice
+    subtitle: TO THE PIT HYPERLUL
+    color: 0xFF0000
+    attract: You have been pitted by a Mooncord moderator. If you do not know what you did, please contact a moderator for details.
+    warning: "NOTE: Leaving the server while pitted can result in a permanent ban."
+  unpit_msg:
+    title: MOONMOON Moderation Notice
+    subtitle: Welcome back!
+    color: 0x00960C
+    attract: You have been released from THE PIT.
+    warning: "NOTE: You may be banned if you are sent to THE PIT five times."

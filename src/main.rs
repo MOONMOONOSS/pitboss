@@ -32,6 +32,7 @@ use serenity::{
     user::User,
   },
   prelude::{Context, EventHandler},
+  utils::Colour,
 };
 use std::{
   env,
@@ -87,6 +88,8 @@ lazy_static!{
   static ref CONFIG: ConfigSchema = get_config();
   static ref POOL: Pool<ConnectionManager<MysqlConnection>> = establish_connection();
 }
+
+const EMBED_FOOTER: &str = "This is an automated message | Bot by Dunkel#0001";
 
 fn add_ban(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> {
   use schema::pitboss;
@@ -276,20 +279,74 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
   match add_pit(*usr.as_u64(), *msg.author.id.as_u64()) {
     Ok(v) => {
-      msg.reply(
-        &ctx,
-        format!("<@{}> has been pitted.", *usr.as_u64()),
-      )?;
+      let mut member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64())?;
+      
+      // Add pit role to user
+      match member.add_role(&ctx, CONFIG.discord.pit_role) {
+        Ok(_) => (),
+        Err(e) => {
+          msg.channel_id.send_message(&ctx, |m| {
+            m.content(format!("**TRACE LOG**\n```{:?}```", e));
+            m.embed(|e| {
+              e.title("Pitting failed!");
+              e.description(format!("<@{}> has NOT been pitted.\nPlease try again later", *usr.as_u64()));
+              e.color(Colour::new(0xFF0000));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
+          rem_usr(*usr.as_u64())?;
+          
+          return Ok(())
+        },
+      }
+
+      // Reply to moderator
+      msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+          e.title("Success");
+          e.description(format!("<@{}> has been pitted.", *usr.as_u64()));
+          e.color(Colour::new(0x00960C));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      // Direct message user to explain they have been pitted.
+      let usr_obj = member
+        .user_id()
+        .to_user(&ctx)?;
+      usr_obj.direct_message(&ctx, |m| {
+        m.embed(|e| {
+          e.title(&CONFIG.discord.pit_msg.title);
+          e.description(&CONFIG.discord.pit_msg.subtitle);
+          e.color(Colour::new(CONFIG.discord.pit_msg.color));
+          e.field(&CONFIG.discord.pit_msg.attract, &CONFIG.discord.pit_msg.warning, true);
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
 
       return Ok(())
     },
     Err(e) => {
       println!("Error adding ban: {:?}", e);
 
-      msg.reply(
-        &ctx,
-        format!("Pitting failed. Please try again later.\n**TRACE LOG**\n```{:?}```", e),
-      )?;
+      msg.channel_id.send_message(&ctx, |m| {
+        m.content(format!("**TRACE LOG**\n```{:?}```", e));
+        m.embed(|e| {
+          e.title("Pitting failed!");
+          e.description(format!("<@{}> has NOT been pitted.\nPlease try again later", *usr.as_u64()));
+          e.color(Colour::new(0xFF0000));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
 
       return Ok(())
     }
@@ -307,24 +364,75 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
   match rem_usr(*usr.as_u64()) {
     Ok(v) => {
-      msg.reply(
-        &ctx,
-        format!("<@{}> has been un-pitted.", *usr.as_u64()),
-      )?;
+      let mut member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64())?;
+
+      // Remove pit role from user
+      match member.remove_role(&ctx, CONFIG.discord.pit_role) {
+        Ok(_) => (),
+        Err(e) => {
+          msg.channel_id.send_message(&ctx, |m| {
+            m.content(format!("**TRACE LOG**\n```{:?}```", e));
+            m.embed(|e| {
+              e.title("Pit removal failed!");
+              e.field("User may still be pitted", "Please try again later", true);
+              e.color(Colour::new(0xFF0000));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
+          add_pit(*usr.as_u64(), *msg.author.id.as_u64())?;
+          
+          return Ok(())
+        },
+      }
+
+      msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+          e.title("Success");
+          e.description(format!("<@{}> has been un-pitted.", *usr.as_u64()));
+          e.color(Colour::new(0x00960C));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      // Direct message user to explain they have been released from the pit.
+      let usr_obj = member
+        .user_id()
+        .to_user(&ctx)?;
+      usr_obj.direct_message(&ctx, |m| {
+        m.embed(|e| {
+          e.title(&CONFIG.discord.unpit_msg.title);
+          e.description(&CONFIG.discord.unpit_msg.subtitle);
+          e.color(Colour::new(CONFIG.discord.unpit_msg.color));
+          e.field(&CONFIG.discord.unpit_msg.attract, &CONFIG.discord.unpit_msg.warning, true);
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
 
       return Ok(())
     },
     Err(e) => {
       println!("Error removing ban: {:?}", e);
 
-      msg.reply(
-        &ctx,
-        format!("Pitting removal failed. **User may still be pitted.** Please try again later.\n**TRACE LOG**\n```{:?}```", e),
-      )?;
+      msg.channel_id.send_message(&ctx, |m| {
+        m.content(format!("**TRACE LOG**\n```{:?}```", e));
+        m.embed(|e| {
+          e.title("Pit removal failed!");
+          e.field("User may still be pitted", "Please try again later", true);
+          e.color(Colour::new(0xFF0000));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
 
       return Ok(())
     }
   }
-
-  Ok(())
 }

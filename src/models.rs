@@ -40,7 +40,20 @@ pub struct DiscordConfig {
   pub guild_id: u64,
   pub admin_roles: Vec<u64>,
   pub admin_users: Vec<u64>,
+  pub pit_role: u64,
   pub token: String,
-  pub ban_msg: String,
-  pub pit_msg: String,
+  pub ban_evade_msg: Embed,
+  pub ban_msg: Embed,
+  pub pit_evade_msg: Embed,
+  pub pit_msg: Embed,
+  pub unpit_msg: Embed,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Embed {
+  pub title: String,
+  pub subtitle: String,
+  pub color: u32,
+  pub attract: String,
+  pub warning: String,
 }
