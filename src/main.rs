@@ -17,14 +17,13 @@ use serenity::{
   client::Client,
   framework::standard::{
     macros::{check, command, group},
-    Args, Check, CheckResult, CommandOptions, CommandResult, StandardFramework,
+    Args, CheckResult, CommandOptions, CommandResult, StandardFramework,
   },
   model::{
     channel::Message,
     gateway::Ready,
     guild::Member,
     id::{ChannelId, GuildId, RoleId, UserId},
-    user::User,
   },
   prelude::{Context, EventHandler},
   utils::Colour,
@@ -105,7 +104,7 @@ impl EventHandler for Handler {
                       "<@{}> is on the Banboss watchlist and wasn't banned!",
                       *usr.as_u64()
                     ));
-                    e.color(Colour::new(0xFF0000));
+                    e.color(Colour::new(0x00FF_0000));
                     e.footer(|f| f.text(EMBED_FOOTER))
                   })
                 });
@@ -121,7 +120,7 @@ impl EventHandler for Handler {
                   "<@{}> is on the Banboss watchlist and was banned.",
                   *usr.as_u64()
                 ));
-                e.color(Colour::new(0x00960C));
+                e.color(Colour::new(0x0000_960C));
                 e.footer(|f| f.text(EMBED_FOOTER))
               })
             });
@@ -149,7 +148,7 @@ impl EventHandler for Handler {
                       "<@{}> is on the Pitboss watchlist and wasn't pitted!",
                       *usr.as_u64()
                     ));
-                    e.color(Colour::new(0xFF0000));
+                    e.color(Colour::new(0x00FF_0000));
                     e.footer(|f| f.text(EMBED_FOOTER))
                   })
                 });
@@ -180,12 +179,10 @@ impl EventHandler for Handler {
                   "<@{}> is on the Pitboss watchlist and was pitted",
                   *usr.as_u64()
                 ));
-                e.color(Colour::new(0x00960C));
+                e.color(Colour::new(0x0000_960C));
                 e.footer(|f| f.text(EMBED_FOOTER))
               })
             });
-
-            return;
           }
           false => {}
         }
@@ -303,8 +300,8 @@ fn is_authorized_usr(
   }
 
   match is_admin {
-    true => return true.into(),
-    false => return CheckResult::new_log("User lacked permission"),
+    true => true.into(),
+    false => CheckResult::new_log("User lacked permission"),
   }
 }
 
@@ -326,8 +323,8 @@ fn is_usr_mention(
 
   // Is the argument a valid @ mention and not a self @ mention?
   match prefix == *"<@" && postfix == *">" && msg.author.id != usr {
-    true => return true.into(),
-    false => return CheckResult::new_log("Supplied arguments doesn't include a mentioned user"),
+    true => true.into(),
+    false => CheckResult::new_log("Supplied arguments doesn't include a mentioned user"),
   }
 }
 
@@ -367,7 +364,7 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
   match add_ban(*usr.as_u64(), *msg.author.id.as_u64()) {
-    Ok(v) => {
+    Ok(_) => {
       let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
 
       match member {
@@ -402,7 +399,7 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     "<@{}> has NOT been banned.\nPlease try again later",
                     *usr.as_u64()
                   ));
-                  e.color(Colour::new(0xFF0000));
+                  e.color(Colour::new(0x00FF_0000));
                   e.footer(|f| f.text(EMBED_FOOTER))
                 })
               })?;
@@ -418,28 +415,28 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             m.embed(|e| {
               e.title("Success");
               e.description(format!("<@{}> has been banned.", *usr.as_u64()));
-              e.color(Colour::new(0x00960C));
+              e.color(Colour::new(0x0000_960C));
               e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(());
+          Ok(())
         }
-        Err(e) => {
+        Err(_) => {
           // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
               e.title("Banboss Success");
               e.description(format!("<@{}> has been added to the Banboss watchlist.", *usr.as_u64()));
               e.field("Banboss checks users joining the server and automatically bans if a match is found.", "You will be alerted if this user joins the server.", true);
-              e.color(Colour::new(0xE79900));
+              e.color(Colour::new(0x00E7_9900));
               e.footer(|f| {
                 f.text(EMBED_FOOTER)
               })
             })
           })?;
 
-          return Ok(());
+          Ok(())
         }
       }
     }
@@ -454,12 +451,12 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             "<@{}> has NOT been banned.\nPlease try again later",
             *usr.as_u64()
           ));
-          e.color(Colour::new(0xFF0000));
+          e.color(Colour::new(0x00FF_0000));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
   }
 }
@@ -474,18 +471,18 @@ fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
   let usr = mention_to_user_id(&mut args);
 
   match rem_usr(*usr.as_u64()) {
-    Ok(v) => {
+    Ok(_) => {
       // Reply to moderator
       msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
           e.title("Success");
           e.description(format!("<@{}> has been pardoned.", *usr.as_u64()));
-          e.color(Colour::new(0x00960C));
+          e.color(Colour::new(0x0000_960C));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
     Err(e) => {
       println!("Error removing ban: {:?}", e);
@@ -498,12 +495,12 @@ fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
             "<@{}> has NOT been pardoned.\nPlease try again later",
             *usr.as_u64()
           ));
-          e.color(Colour::new(0xFF0000));
+          e.color(Colour::new(0x00FF_0000));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
   }
 }
@@ -518,7 +515,7 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
   match rem_usr(*usr.as_u64()) {
-    Ok(v) => {
+    Ok(_) => {
       let guild = GuildId(CONFIG.discord.guild_id);
 
       match guild.unban(&ctx, usr) {
@@ -534,7 +531,7 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 "<@{}> has NOT been pardoned.\nPlease try again later",
                 *usr.as_u64()
               ));
-              e.color(Colour::new(0xFF0000));
+              e.color(Colour::new(0x00FF_0000));
               e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
@@ -550,12 +547,12 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         m.embed(|e| {
           e.title("Success");
           e.description(format!("<@{}> has been pardoned.", *usr.as_u64()));
-          e.color(Colour::new(0x00960C));
+          e.color(Colour::new(0x0000_960C));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
     Err(e) => {
       println!("Error removing ban: {:?}", e);
@@ -568,12 +565,12 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             "<@{}> has NOT been pardoned.\nPlease try again later",
             *usr.as_u64()
           ));
-          e.color(Colour::new(0xFF0000));
+          e.color(Colour::new(0x00FF_0000));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
   }
 }
@@ -588,7 +585,7 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
   match add_pit(*usr.as_u64(), *msg.author.id.as_u64()) {
-    Ok(v) => {
+    Ok(_) => {
       let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
 
       match member {
@@ -605,7 +602,7 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     "<@{}> has NOT been pitted.\nPlease try again later",
                     *usr.as_u64()
                   ));
-                  e.color(Colour::new(0xFF0000));
+                  e.color(Colour::new(0x00FF_0000));
                   e.footer(|f| f.text(EMBED_FOOTER))
                 })
               })?;
@@ -621,7 +618,7 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             m.embed(|e| {
               e.title("Success");
               e.description(format!("<@{}> has been pitted.", *usr.as_u64()));
-              e.color(Colour::new(0x00960C));
+              e.color(Colour::new(0x0000_960C));
               e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
@@ -642,9 +639,9 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             })
           })?;
 
-          return Ok(());
+          Ok(())
         }
-        Err(e) => {
+        Err(_) => {
           // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
@@ -658,12 +655,12 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 "You will be alerted if this user joins the server.",
                 true,
               );
-              e.color(Colour::new(0xE79900));
+              e.color(Colour::new(0x00E7_9900));
               e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(());
+          Ok(())
         }
       }
     }
@@ -678,12 +675,12 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             "<@{}> has NOT been pitted.\nPlease try again later",
             *usr.as_u64()
           ));
-          e.color(Colour::new(0xFF0000));
+          e.color(Colour::new(0x00FF_0000));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
   }
 }
@@ -698,7 +695,7 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
   match rem_usr(*usr.as_u64()) {
-    Ok(v) => {
+    Ok(_) => {
       let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
 
       match member {
@@ -712,7 +709,7 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 m.embed(|e| {
                   e.title("Pit removal failed!");
                   e.field("User may still be pitted", "Please try again later", true);
-                  e.color(Colour::new(0xFF0000));
+                  e.color(Colour::new(0x00FF_0000));
                   e.footer(|f| f.text(EMBED_FOOTER))
                 })
               })?;
@@ -727,7 +724,7 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             m.embed(|e| {
               e.title("Success");
               e.description(format!("<@{}> has been un-pitted.", *usr.as_u64()));
-              e.color(Colour::new(0x00960C));
+              e.color(Colour::new(0x0000_960C));
               e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
@@ -748,9 +745,9 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             })
           })?;
 
-          return Ok(());
+          Ok(())
         }
-        Err(e) => {
+        Err(_) => {
           // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
@@ -759,12 +756,12 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 "<@{}> has been removed from the Pitboss watchlist.",
                 *usr.as_u64()
               ));
-              e.color(Colour::new(0x00960C));
+              e.color(Colour::new(0x0000_960C));
               e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(());
+          Ok(())
         }
       }
     }
@@ -776,12 +773,12 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         m.embed(|e| {
           e.title("Pit removal failed!");
           e.field("User may still be pitted", "Please try again later", true);
-          e.color(Colour::new(0xFF0000));
+          e.color(Colour::new(0x00FF_0000));
           e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(());
+      Ok(())
     }
   }
 }
