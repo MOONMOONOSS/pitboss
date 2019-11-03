@@ -36,6 +36,7 @@ use serenity::{
 use std::{
   env,
   fs::File,
+  result::Result,
 };
 
 group!({
@@ -87,7 +88,7 @@ lazy_static!{
   static ref POOL: Pool<ConnectionManager<MysqlConnection>> = establish_connection();
 }
 
-fn add_ban(id: u64, moderator: u64) -> UserModel {
+fn add_ban(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> {
   use schema::pitboss;
 
   let new_usr = NewUserBan {
@@ -97,18 +98,16 @@ fn add_ban(id: u64, moderator: u64) -> UserModel {
   };
   let conn = POOL.get().unwrap();
 
-  diesel::insert_into(pitboss::table)
+  r#try!(diesel::insert_into(pitboss::table)
     .values(&new_usr)
-    .execute(&conn)
-    .expect("Error saving user ban.");
+    .execute(&conn));
   
   pitboss::table
     .order(pitboss::id.desc())
     .first(&conn)
-    .unwrap()
 }
 
-fn add_pit(id: u64, moderator: u64) -> UserModel {
+fn add_pit(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> {
   use schema::pitboss;
 
   let new_usr = NewUserPit {
@@ -118,15 +117,13 @@ fn add_pit(id: u64, moderator: u64) -> UserModel {
   };
   let conn = POOL.get().unwrap();
 
-  diesel::insert_into(pitboss::table)
+  r#try!(diesel::insert_into(pitboss::table)
     .values(&new_usr)
-    .execute(&conn)
-    .expect("Error saving user ban.");
+    .execute(&conn));
   
   pitboss::table
     .order(pitboss::id.desc())
     .first(&conn)
-    .unwrap()
 }
 
 fn establish_connection() -> Pool<ConnectionManager<MysqlConnection>> {
@@ -146,13 +143,14 @@ fn get_config() -> ConfigSchema {
   serde_yaml::from_reader(&f).unwrap()
 }
 
-fn rem_usr(id: u64) {
+fn rem_usr(id: u64) -> Result<(), diesel::result::Error> {
   use self::schema::pitboss::dsl::*;
 
   let conn = POOL.get().unwrap();
-  let num_deleted = diesel::delete(pitboss.filter(id.eq(id)))
-    .execute(&conn)
-    .expect("Error removing ban/pit");
+  r#try!(diesel::delete(pitboss.filter(id.eq(id)))
+    .execute(&conn));
+
+  Ok(())
 }
 
 #[check]
