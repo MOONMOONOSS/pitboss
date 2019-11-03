@@ -46,6 +46,7 @@ group!({
   commands: [
     ban,
     unban,
+    force_unban,
     pit,
     unpit,
   ],
@@ -254,8 +255,103 @@ fn main() {
 #[only_in(guilds)]
 #[bucket = "pitboss"]
 #[checks(Admin, UserMention)]
-fn ban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-  Ok(())
+fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+  let usr = mention_to_user_id(&mut args);
+
+  match add_ban(*usr.as_u64(), *msg.author.id.as_u64()) {
+    Ok(v) => {
+      let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64())?;
+      
+      match member {
+        Ok(mut me) => {
+          // Direct message user to explain they have been banned.
+          // MUST happen before banning the user since we can't send messages to just anybody.
+          let usr_obj = me
+            .user_id()
+            .to_user(&ctx)?;
+          usr_obj.direct_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title(&CONFIG.discord.ban_msg.title);
+              e.description(&CONFIG.discord.ban_msg.subtitle);
+              e.color(Colour::new(CONFIG.discord.ban_msg.color));
+              e.field(&CONFIG.discord.ban_msg.attract, &CONFIG.discord.ban_msg.warning, true);
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
+          match me.ban(&ctx, &7) {
+            Ok(_) => {},
+            Err(e) => {
+              println!("Error adding ban: {:?}", e);
+
+              msg.channel_id.send_message(&ctx, |m| {
+                m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                m.embed(|e| {
+                  e.title("Ban failed!");
+                  e.description(format!("<@{}> has NOT been banned.\nPlease try again later", *usr.as_u64()));
+                  e.color(Colour::new(0xFF0000));
+                  e.footer(|f| {
+                    f.text(EMBED_FOOTER)
+                  })
+                })
+              })?;
+
+              rem_usr(*usr.as_u64())?;
+
+              return Ok(())
+            }
+          }
+
+          // Reply to moderator
+          msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title("Success");
+              e.description(format!("<@{}> has been banned.", *usr.as_u64()));
+              e.color(Colour::new(0x00960C));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+
+          return Ok(())
+        },
+        Err(e) => {
+          // Reply to moderator
+          msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title("Banboss Success");
+              e.description(format!("<@{}> has been added to the Banboss watchlist.", *usr.as_u64()));
+              e.field("Banboss checks users joining the server and automatically bans if a match is found.", "You will be alerted if this user joins the server.", true);
+              e.color(Colour::new(0xE79900));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+        },
+      }
+    },
+    Err(e) => {
+      println!("Error adding ban: {:?}", e);
+
+      msg.channel_id.send_message(&ctx, |m| {
+        m.content(format!("**TRACE LOG**\n```{:?}```", e));
+        m.embed(|e| {
+          e.title("Ban failed!");
+          e.description(format!("<@{}> has NOT been banned.\nPlease try again later", *usr.as_u64()));
+          e.color(Colour::new(0xFF0000));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      return Ok(())
+    }
+  }
 }
 
 #[command]
@@ -264,8 +360,113 @@ fn ban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[only_in(guilds)]
 #[bucket = "pitboss"]
 #[checks(Admin, UserMention)]
-fn unban(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-  Ok(())
+fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+  let usr = mention_to_user_id(&mut args);
+
+  match rem_usr(*usr.as_u64()) {
+    Ok(v) => {
+      // Reply to moderator
+      msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+          e.title("Success");
+          e.description(format!("<@{}> has been pardoned.", *usr.as_u64()));
+          e.color(Colour::new(0x00960C));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      return Ok(())
+    },
+    Err(e) => {
+      println!("Error removing ban: {:?}", e);
+
+      msg.channel_id.send_message(&ctx, |m| {
+        m.content(format!("**TRACE LOG**\n```{:?}```", e));
+        m.embed(|e| {
+          e.title("Pardon failed!");
+          e.description(format!("<@{}> has NOT been pardoned.\nPlease try again later", *usr.as_u64()));
+          e.color(Colour::new(0xFF0000));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      return Ok(())
+    }
+  }
+}
+
+#[command]
+#[min_args(1)]
+#[max_args(1)]
+#[only_in(guilds)]
+#[bucket = "pitboss"]
+#[checks(Admin, UserMention)]
+fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+  let usr = mention_to_user_id(&mut args);
+
+  match rem_usr(*usr.as_u64()) {
+    Ok(v) => {
+      let guild = GuildId(CONFIG.discord.guild_id);
+
+      match guild.unban(&ctx, usr) {
+        Ok(_) => {},
+        Err(e) => {
+          println!("Error removing ban: {:?}", e);
+
+          msg.channel_id.send_message(&ctx, |m| {
+            m.content(format!("**TRACE LOG**\n```{:?}```", e));
+            m.embed(|e| {
+              e.title("Pardon failed!");
+              e.description(format!("<@{}> has NOT been pardoned.\nPlease try again later", *usr.as_u64()));
+              e.color(Colour::new(0xFF0000));
+              e.footer(|f| {
+                f.text(EMBED_FOOTER)
+              })
+            })
+          })?;
+          
+          add_ban(*usr.as_u64(), *msg.author.id.as_u64())?;
+
+          return Ok(())
+        }
+      }
+
+      // Reply to moderator
+      msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+          e.title("Success");
+          e.description(format!("<@{}> has been pardoned.", *usr.as_u64()));
+          e.color(Colour::new(0x00960C));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      return Ok(())
+    },
+    Err(e) => {
+      println!("Error removing ban: {:?}", e);
+
+      msg.channel_id.send_message(&ctx, |m| {
+        m.content(format!("**TRACE LOG**\n```{:?}```", e));
+        m.embed(|e| {
+          e.title("Pardon failed!");
+          e.description(format!("<@{}> has NOT been pardoned.\nPlease try again later", *usr.as_u64()));
+          e.color(Colour::new(0xFF0000));
+          e.footer(|f| {
+            f.text(EMBED_FOOTER)
+          })
+        })
+      })?;
+
+      return Ok(())
+    }
+  }
 }
 
 #[command]
