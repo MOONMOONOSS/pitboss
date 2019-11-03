@@ -1,8 +1,5 @@
-use serde::{
-  Deserialize,
-  Serialize,
-};
 use super::schema::pitboss;
+use serde::{Deserialize, Serialize};
 
 // Diesel Models
 #[derive(Queryable)]
@@ -14,7 +11,7 @@ pub struct User {
 }
 
 #[derive(Insertable)]
-#[table_name="pitboss"]
+#[table_name = "pitboss"]
 pub struct NewUserBan {
   pub id: u64,
   pub banned: bool,
@@ -22,7 +19,7 @@ pub struct NewUserBan {
 }
 
 #[derive(Insertable)]
-#[table_name="pitboss"]
+#[table_name = "pitboss"]
 pub struct NewUserPit {
   pub id: u64,
   pub pitted: bool,

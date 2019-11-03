@@ -1,44 +1,35 @@
 #[macro_use]
 extern crate diesel;
 
-pub mod schema;
 pub mod models;
+pub mod schema;
 
+use self::models::{ConfigSchema, NewUserBan, NewUserPit, User as UserModel};
 use diesel::{
-  prelude::*,
   mysql::MysqlConnection,
+  prelude::*,
   r2d2::{ConnectionManager, Pool},
   RunQueryDsl,
 };
 use dotenv::dotenv;
 use lazy_static::lazy_static;
-use self::models::{
-  ConfigSchema,
-  NewUserBan,
-  NewUserPit,
-  User as UserModel,
-};
 use serenity::{
   client::Client,
   framework::standard::{
-    macros::{command, check, group},
-    Args, CommandResult, Check, CheckResult, CommandOptions, StandardFramework,
+    macros::{check, command, group},
+    Args, Check, CheckResult, CommandOptions, CommandResult, StandardFramework,
   },
   model::{
     channel::Message,
     gateway::Ready,
     guild::Member,
-    id::{ChannelId, GuildId, UserId, RoleId},
+    id::{ChannelId, GuildId, RoleId, UserId},
     user::User,
   },
   prelude::{Context, EventHandler},
   utils::Colour,
 };
-use std::{
-  env,
-  fs::File,
-  result::Result,
-};
+use std::{env, fs::File, result::Result};
 
 group!({
   name: "general",
@@ -59,19 +50,23 @@ impl EventHandler for Handler {
     use self::schema::pitboss::dsl::*;
 
     // Stop execution if the user isn't joining the target guild
-    if guild_id != GuildId(CONFIG.discord.guild_id) { return }
+    if guild_id != GuildId(CONFIG.discord.guild_id) {
+      return;
+    }
 
-    println!("User {} has joined Guild {}", new_member.user_id(), guild_id);
+    println!(
+      "User {} has joined Guild {}",
+      new_member.user_id(),
+      guild_id
+    );
 
     let conn = POOL.get().unwrap();
-    let user_id = *new_member
-      .user_id()
-      .as_u64();
+    let user_id = *new_member.user_id().as_u64();
     let res = pitboss
       .filter(id.eq(user_id))
       .load::<UserModel>(&conn)
       .expect("Error loading user info");
-    
+
     match res.len() {
       0 => println!("No records found for {}", user_id),
       _ => {
@@ -80,21 +75,22 @@ impl EventHandler for Handler {
         match res[0].banned {
           true => {
             let usr = new_member.user_id();
-            let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64()).unwrap();
-
-            let usr_obj = member
-              .user_id()
-              .to_user(&ctx)
+            let member = GuildId(CONFIG.discord.guild_id)
+              .member(&ctx, *usr.as_u64())
               .unwrap();
+
+            let usr_obj = member.user_id().to_user(&ctx).unwrap();
             let _ = usr_obj.direct_message(&ctx, |m| {
               m.embed(|e| {
                 e.title(&CONFIG.discord.ban_evade_msg.title);
                 e.description(&CONFIG.discord.ban_evade_msg.subtitle);
                 e.color(Colour::new(CONFIG.discord.ban_evade_msg.color));
-                e.field(&CONFIG.discord.ban_evade_msg.attract, &CONFIG.discord.ban_evade_msg.warning, true);
-                e.footer(|f| {
-                  f.text(EMBED_FOOTER)
-                })
+                e.field(
+                  &CONFIG.discord.ban_evade_msg.attract,
+                  &CONFIG.discord.ban_evade_msg.warning,
+                  true,
+                );
+                e.footer(|f| f.text(EMBED_FOOTER))
               })
             });
 
@@ -105,37 +101,41 @@ impl EventHandler for Handler {
                   m.content(format!("**TRACE LOG**\n```{:?}```", e));
                   m.embed(|e| {
                     e.title("Banning failed!");
-                    e.description(format!("<@{}> is on the Banboss watchlist and wasn't banned!", *usr.as_u64()));
+                    e.description(format!(
+                      "<@{}> is on the Banboss watchlist and wasn't banned!",
+                      *usr.as_u64()
+                    ));
                     e.color(Colour::new(0xFF0000));
-                    e.footer(|f| {
-                      f.text(EMBED_FOOTER)
-                    })
+                    e.footer(|f| f.text(EMBED_FOOTER))
                   })
                 });
 
-                return
+                return;
               }
             }
 
             let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
               m.embed(|e| {
                 e.title("Banboss Success");
-                e.description(format!("<@{}> is on the Banboss watchlist and was banned.", *usr.as_u64()));
+                e.description(format!(
+                  "<@{}> is on the Banboss watchlist and was banned.",
+                  *usr.as_u64()
+                ));
                 e.color(Colour::new(0x00960C));
-                e.footer(|f| {
-                  f.text(EMBED_FOOTER)
-                })
+                e.footer(|f| f.text(EMBED_FOOTER))
               })
             });
 
-            return
-          },
-          false => {},
+            return;
+          }
+          false => {}
         }
         match res[0].pitted {
           true => {
             let usr = new_member.user_id();
-            let mut member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64()).unwrap();
+            let mut member = GuildId(CONFIG.discord.guild_id)
+              .member(&ctx, *usr.as_u64())
+              .unwrap();
 
             // Add pit role to user
             match member.add_role(&ctx, CONFIG.discord.pit_role) {
@@ -145,49 +145,49 @@ impl EventHandler for Handler {
                   m.content(format!("**TRACE LOG**\n```{:?}```", e));
                   m.embed(|e| {
                     e.title("Pitting failed!");
-                    e.description(format!("<@{}> is on the Pitboss watchlist and wasn't pitted!", *usr.as_u64()));
+                    e.description(format!(
+                      "<@{}> is on the Pitboss watchlist and wasn't pitted!",
+                      *usr.as_u64()
+                    ));
                     e.color(Colour::new(0xFF0000));
-                    e.footer(|f| {
-                      f.text(EMBED_FOOTER)
-                    })
+                    e.footer(|f| f.text(EMBED_FOOTER))
                   })
                 });
-                
-                return
-              },
+
+                return;
+              }
             }
 
             // Direct message user to explain they have been pitted.
-            let usr_obj = member
-              .user_id()
-              .to_user(&ctx)
-              .unwrap();
+            let usr_obj = member.user_id().to_user(&ctx).unwrap();
             let _ = usr_obj.direct_message(&ctx, |m| {
               m.embed(|e| {
                 e.title(&CONFIG.discord.pit_evade_msg.title);
                 e.description(&CONFIG.discord.pit_evade_msg.subtitle);
                 e.color(Colour::new(CONFIG.discord.pit_evade_msg.color));
-                e.field(&CONFIG.discord.pit_evade_msg.attract, &CONFIG.discord.pit_evade_msg.warning, true);
-                e.footer(|f| {
-                  f.text(EMBED_FOOTER)
-                })
+                e.field(
+                  &CONFIG.discord.pit_evade_msg.attract,
+                  &CONFIG.discord.pit_evade_msg.warning,
+                  true,
+                );
+                e.footer(|f| f.text(EMBED_FOOTER))
               })
             });
             let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
               m.embed(|e| {
                 e.title("Pitboss Success");
-                e.description(format!("<@{}> is on the Pitboss watchlist and was pitted", *usr.as_u64()));
+                e.description(format!(
+                  "<@{}> is on the Pitboss watchlist and was pitted",
+                  *usr.as_u64()
+                ));
                 e.color(Colour::new(0x00960C));
-                e.footer(|f| {
-                  f.text(EMBED_FOOTER)
-                })
+                e.footer(|f| f.text(EMBED_FOOTER))
               })
             });
 
-            return
-
-          },
-          false => {},
+            return;
+          }
+          false => {}
         }
       }
     }
@@ -198,7 +198,7 @@ impl EventHandler for Handler {
   }
 }
 
-lazy_static!{
+lazy_static! {
   static ref CONFIG: ConfigSchema = get_config();
   static ref POOL: Pool<ConnectionManager<MysqlConnection>> = establish_connection();
 }
@@ -218,10 +218,8 @@ fn add_ban(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> 
   r#try!(diesel::insert_into(pitboss::table)
     .values(&new_usr)
     .execute(&conn));
-  
-  pitboss::table
-    .order(pitboss::id.desc())
-    .first(&conn)
+
+  pitboss::table.order(pitboss::id.desc()).first(&conn)
 }
 
 fn add_pit(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> {
@@ -237,17 +235,14 @@ fn add_pit(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> 
   r#try!(diesel::insert_into(pitboss::table)
     .values(&new_usr)
     .execute(&conn));
-  
-  pitboss::table
-    .order(pitboss::id.desc())
-    .first(&conn)
+
+  pitboss::table.order(pitboss::id.desc()).first(&conn)
 }
 
 fn establish_connection() -> Pool<ConnectionManager<MysqlConnection>> {
   dotenv().ok();
 
-  let db_url = env::var("DATABASE_URL")
-    .expect("DATABASE_URL env var must be set");
+  let db_url = env::var("DATABASE_URL").expect("DATABASE_URL env var must be set");
   let manager = ConnectionManager::<MysqlConnection>::new(db_url);
   Pool::builder()
     .build(manager)
@@ -264,26 +259,32 @@ fn rem_usr(_id: u64) -> Result<(), diesel::result::Error> {
   use self::schema::pitboss::dsl::*;
 
   let conn = POOL.get().unwrap();
-  r#try!(diesel::delete(pitboss.filter(id.eq(_id)))
-    .execute(&conn));
+  r#try!(diesel::delete(pitboss.filter(id.eq(_id))).execute(&conn));
 
   Ok(())
 }
 
 #[check]
 #[name = "Admin"]
-fn is_authorized_usr(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+fn is_authorized_usr(
+  ctx: &mut Context,
+  msg: &Message,
+  _: &mut Args,
+  _: &CommandOptions,
+) -> CheckResult {
   let mut is_admin = false;
   // Checks if the issuing user has one of the admin roles defined in the config
   'role_check: for role in &CONFIG.discord.admin_roles {
-    if msg.member(&ctx.cache)
+    if msg
+      .member(&ctx.cache)
       .unwrap()
       .roles
-      .contains(&RoleId(*role)) {
-        is_admin = true;
+      .contains(&RoleId(*role))
+    {
+      is_admin = true;
 
-        break 'role_check
-      }
+      break 'role_check;
+    }
   }
   // Don't perform this admin check if we know they are admin already
   if !is_admin {
@@ -292,52 +293,46 @@ fn is_authorized_usr(ctx: &mut Context, msg: &Message, _: &mut Args, _: &Command
       if msg.author.id == UserId(*user) {
         is_admin = true;
 
-        break 'user_check
+        break 'user_check;
       }
     }
   }
   // Checks if the issuing user issued the command from the correct guild
   if msg.guild_id.unwrap() != GuildId(CONFIG.discord.guild_id) {
-    return CheckResult::new_log("User issued command from wrong guild")
+    return CheckResult::new_log("User issued command from wrong guild");
   }
 
   match is_admin {
     true => return true.into(),
-    false => return CheckResult::new_log("User lacked permission")
+    false => return CheckResult::new_log("User lacked permission"),
   }
 }
 
 #[check]
 #[name = "UserMention"]
-fn is_usr_mention(_: &mut Context, msg: &Message, args: &mut Args, _: &CommandOptions) -> CheckResult {
-  let usr = args
-    .single_quoted::<String>()
-    .unwrap();
-  let prefix = usr
-    .get(0..=1)
-    .unwrap()
-    .to_string();
-  let postfix = usr
-    .chars()
-    .last()
-    .unwrap()
-    .to_string();
+fn is_usr_mention(
+  _: &mut Context,
+  msg: &Message,
+  args: &mut Args,
+  _: &CommandOptions,
+) -> CheckResult {
+  let usr = args.single_quoted::<String>().unwrap();
+  let prefix = usr.get(0..=1).unwrap().to_string();
+  let postfix = usr.chars().last().unwrap().to_string();
   // Rewind so other functions can access the args after we finish
   args.rewind();
   // Parse the user string into a UserId
   let usr = mention_to_user_id(args);
-  
+
   // Is the argument a valid @ mention and not a self @ mention?
   match prefix == *"<@" && postfix == *">" && msg.author.id != usr {
     true => return true.into(),
-    false => return CheckResult::new_log("Supplied arguments doesn't include a mentioned user")
+    false => return CheckResult::new_log("Supplied arguments doesn't include a mentioned user"),
   }
 }
 
 fn mention_to_user_id(args: &mut Args) -> UserId {
-  let mut usr = args
-  .single_quoted::<String>()
-  .unwrap();
+  let mut usr = args.single_quoted::<String>().unwrap();
 
   args.rewind();
   usr.retain(|c| c.to_string().parse::<i8>().is_ok());
@@ -374,28 +369,28 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   match add_ban(*usr.as_u64(), *msg.author.id.as_u64()) {
     Ok(v) => {
       let member = GuildId(CONFIG.discord.guild_id).member(&ctx, *usr.as_u64());
-      
+
       match member {
         Ok(me) => {
           // Direct message user to explain they have been banned.
           // MUST happen before banning the user since we can't send messages to just anybody.
-          let usr_obj = me
-            .user_id()
-            .to_user(&ctx)?;
+          let usr_obj = me.user_id().to_user(&ctx)?;
           usr_obj.direct_message(&ctx, |m| {
             m.embed(|e| {
               e.title(&CONFIG.discord.ban_msg.title);
               e.description(&CONFIG.discord.ban_msg.subtitle);
               e.color(Colour::new(CONFIG.discord.ban_msg.color));
-              e.field(&CONFIG.discord.ban_msg.attract, &CONFIG.discord.ban_msg.warning, true);
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.field(
+                &CONFIG.discord.ban_msg.attract,
+                &CONFIG.discord.ban_msg.warning,
+                true,
+              );
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
           match me.ban(&ctx, &7) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
               println!("Error adding ban: {:?}", e);
 
@@ -403,17 +398,18 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 m.content(format!("**TRACE LOG**\n```{:?}```", e));
                 m.embed(|e| {
                   e.title("Ban failed!");
-                  e.description(format!("<@{}> has NOT been banned.\nPlease try again later", *usr.as_u64()));
+                  e.description(format!(
+                    "<@{}> has NOT been banned.\nPlease try again later",
+                    *usr.as_u64()
+                  ));
                   e.color(Colour::new(0xFF0000));
-                  e.footer(|f| {
-                    f.text(EMBED_FOOTER)
-                  })
+                  e.footer(|f| f.text(EMBED_FOOTER))
                 })
               })?;
 
               rem_usr(*usr.as_u64())?;
 
-              return Ok(())
+              return Ok(());
             }
           }
 
@@ -423,14 +419,12 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
               e.title("Success");
               e.description(format!("<@{}> has been banned.", *usr.as_u64()));
               e.color(Colour::new(0x00960C));
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(())
-        },
+          return Ok(());
+        }
         Err(e) => {
           // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
@@ -445,10 +439,10 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             })
           })?;
 
-          return Ok(())
-        },
+          return Ok(());
+        }
       }
-    },
+    }
     Err(e) => {
       println!("Error adding ban: {:?}", e);
 
@@ -456,15 +450,16 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         m.content(format!("**TRACE LOG**\n```{:?}```", e));
         m.embed(|e| {
           e.title("Ban failed!");
-          e.description(format!("<@{}> has NOT been banned.\nPlease try again later", *usr.as_u64()));
+          e.description(format!(
+            "<@{}> has NOT been banned.\nPlease try again later",
+            *usr.as_u64()
+          ));
           e.color(Colour::new(0xFF0000));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
+      return Ok(());
     }
   }
 }
@@ -486,14 +481,12 @@ fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
           e.title("Success");
           e.description(format!("<@{}> has been pardoned.", *usr.as_u64()));
           e.color(Colour::new(0x00960C));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
-    },
+      return Ok(());
+    }
     Err(e) => {
       println!("Error removing ban: {:?}", e);
 
@@ -501,15 +494,16 @@ fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
         m.content(format!("**TRACE LOG**\n```{:?}```", e));
         m.embed(|e| {
           e.title("Pardon failed!");
-          e.description(format!("<@{}> has NOT been pardoned.\nPlease try again later", *usr.as_u64()));
+          e.description(format!(
+            "<@{}> has NOT been pardoned.\nPlease try again later",
+            *usr.as_u64()
+          ));
           e.color(Colour::new(0xFF0000));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
+      return Ok(());
     }
   }
 }
@@ -528,7 +522,7 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
       let guild = GuildId(CONFIG.discord.guild_id);
 
       match guild.unban(&ctx, usr) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
           println!("Error removing ban: {:?}", e);
 
@@ -536,17 +530,18 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             m.content(format!("**TRACE LOG**\n```{:?}```", e));
             m.embed(|e| {
               e.title("Pardon failed!");
-              e.description(format!("<@{}> has NOT been pardoned.\nPlease try again later", *usr.as_u64()));
+              e.description(format!(
+                "<@{}> has NOT been pardoned.\nPlease try again later",
+                *usr.as_u64()
+              ));
               e.color(Colour::new(0xFF0000));
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
-          
+
           add_ban(*usr.as_u64(), *msg.author.id.as_u64())?;
 
-          return Ok(())
+          return Ok(());
         }
       }
 
@@ -556,14 +551,12 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
           e.title("Success");
           e.description(format!("<@{}> has been pardoned.", *usr.as_u64()));
           e.color(Colour::new(0x00960C));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
-    },
+      return Ok(());
+    }
     Err(e) => {
       println!("Error removing ban: {:?}", e);
 
@@ -571,15 +564,16 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         m.content(format!("**TRACE LOG**\n```{:?}```", e));
         m.embed(|e| {
           e.title("Pardon failed!");
-          e.description(format!("<@{}> has NOT been pardoned.\nPlease try again later", *usr.as_u64()));
+          e.description(format!(
+            "<@{}> has NOT been pardoned.\nPlease try again later",
+            *usr.as_u64()
+          ));
           e.color(Colour::new(0xFF0000));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
+      return Ok(());
     }
   }
 }
@@ -607,18 +601,19 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 m.content(format!("**TRACE LOG**\n```{:?}```", e));
                 m.embed(|e| {
                   e.title("Pitting failed!");
-                  e.description(format!("<@{}> has NOT been pitted.\nPlease try again later", *usr.as_u64()));
+                  e.description(format!(
+                    "<@{}> has NOT been pitted.\nPlease try again later",
+                    *usr.as_u64()
+                  ));
                   e.color(Colour::new(0xFF0000));
-                  e.footer(|f| {
-                    f.text(EMBED_FOOTER)
-                  })
+                  e.footer(|f| f.text(EMBED_FOOTER))
                 })
               })?;
 
               rem_usr(*usr.as_u64())?;
-              
-              return Ok(())
-            },
+
+              return Ok(());
+            }
           }
 
           // Reply to moderator
@@ -627,48 +622,51 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
               e.title("Success");
               e.description(format!("<@{}> has been pitted.", *usr.as_u64()));
               e.color(Colour::new(0x00960C));
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
           // Direct message user to explain they have been pitted.
-          let usr_obj = me
-            .user_id()
-            .to_user(&ctx)?;
+          let usr_obj = me.user_id().to_user(&ctx)?;
           usr_obj.direct_message(&ctx, |m| {
             m.embed(|e| {
               e.title(&CONFIG.discord.pit_msg.title);
               e.description(&CONFIG.discord.pit_msg.subtitle);
               e.color(Colour::new(CONFIG.discord.pit_msg.color));
-              e.field(&CONFIG.discord.pit_msg.attract, &CONFIG.discord.pit_msg.warning, true);
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.field(
+                &CONFIG.discord.pit_msg.attract,
+                &CONFIG.discord.pit_msg.warning,
+                true,
+              );
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(())
-        },
+          return Ok(());
+        }
         Err(e) => {
           // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
               e.title("Pitboss Success");
-              e.description(format!("<@{}> has been added to the Pitboss watchlist.", *usr.as_u64()));
-              e.field("Pitboss checks users joining the server and takes action if a match is found.", "You will be alerted if this user joins the server.", true);
+              e.description(format!(
+                "<@{}> has been added to the Pitboss watchlist.",
+                *usr.as_u64()
+              ));
+              e.field(
+                "Pitboss checks users joining the server and takes action if a match is found.",
+                "You will be alerted if this user joins the server.",
+                true,
+              );
               e.color(Colour::new(0xE79900));
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(())
-        },
+          return Ok(());
+        }
       }
-    },
+    }
     Err(e) => {
       println!("Error adding pit: {:?}", e);
 
@@ -676,15 +674,16 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         m.content(format!("**TRACE LOG**\n```{:?}```", e));
         m.embed(|e| {
           e.title("Pitting failed!");
-          e.description(format!("<@{}> has NOT been pitted.\nPlease try again later", *usr.as_u64()));
+          e.description(format!(
+            "<@{}> has NOT been pitted.\nPlease try again later",
+            *usr.as_u64()
+          ));
           e.color(Colour::new(0xFF0000));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
+      return Ok(());
     }
   }
 }
@@ -704,7 +703,6 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
       match member {
         Ok(mut me) => {
-
           // Remove pit role from user
           match me.remove_role(&ctx, CONFIG.discord.pit_role) {
             Ok(_) => (),
@@ -715,16 +713,14 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                   e.title("Pit removal failed!");
                   e.field("User may still be pitted", "Please try again later", true);
                   e.color(Colour::new(0xFF0000));
-                  e.footer(|f| {
-                    f.text(EMBED_FOOTER)
-                  })
+                  e.footer(|f| f.text(EMBED_FOOTER))
                 })
               })?;
 
               add_pit(*usr.as_u64(), *msg.author.id.as_u64())?;
-              
-              return Ok(())
-            },
+
+              return Ok(());
+            }
           }
 
           msg.channel_id.send_message(&ctx, |m| {
@@ -732,47 +728,46 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
               e.title("Success");
               e.description(format!("<@{}> has been un-pitted.", *usr.as_u64()));
               e.color(Colour::new(0x00960C));
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
           // Direct message user to explain they have been released from the pit.
-          let usr_obj = me
-            .user_id()
-            .to_user(&ctx)?;
+          let usr_obj = me.user_id().to_user(&ctx)?;
           usr_obj.direct_message(&ctx, |m| {
             m.embed(|e| {
               e.title(&CONFIG.discord.unpit_msg.title);
               e.description(&CONFIG.discord.unpit_msg.subtitle);
               e.color(Colour::new(CONFIG.discord.unpit_msg.color));
-              e.field(&CONFIG.discord.unpit_msg.attract, &CONFIG.discord.unpit_msg.warning, true);
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.field(
+                &CONFIG.discord.unpit_msg.attract,
+                &CONFIG.discord.unpit_msg.warning,
+                true,
+              );
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(())
-        },
+          return Ok(());
+        }
         Err(e) => {
           // Reply to moderator
           msg.channel_id.send_message(&ctx, |m| {
             m.embed(|e| {
               e.title("Success");
-              e.description(format!("<@{}> has been removed from the Pitboss watchlist.", *usr.as_u64()));
+              e.description(format!(
+                "<@{}> has been removed from the Pitboss watchlist.",
+                *usr.as_u64()
+              ));
               e.color(Colour::new(0x00960C));
-              e.footer(|f| {
-                f.text(EMBED_FOOTER)
-              })
+              e.footer(|f| f.text(EMBED_FOOTER))
             })
           })?;
 
-          return Ok(())
-        },
+          return Ok(());
+        }
       }
-    },
+    }
     Err(e) => {
       println!("Error removing pit: {:?}", e);
 
@@ -782,13 +777,11 @@ fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
           e.title("Pit removal failed!");
           e.field("User may still be pitted", "Please try again later", true);
           e.color(Colour::new(0xFF0000));
-          e.footer(|f| {
-            f.text(EMBED_FOOTER)
-          })
+          e.footer(|f| f.text(EMBED_FOOTER))
         })
       })?;
 
-      return Ok(())
-    },
+      return Ok(());
+    }
   }
 }
