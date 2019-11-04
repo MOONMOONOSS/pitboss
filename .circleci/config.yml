@@ -28,10 +28,10 @@ jobs:
       - run:
           name: "Change dir to repository and build project (Dev mode)"
           command: |
-            cd ~/project/pitboss
+            cd ~/project
             cargo build
 
       - save_cache:
           key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - ~/project/pitboss/target
+            - ~/project/target
