@@ -10,26 +10,26 @@ jobs:
           key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
 
       - run:
-        name: "Install libmysqlclient-dev"
-        command: |
-          sudo apt update
-          sudo apt install -Y default-libmysqlclient-dev
+          name: "Install libmysqlclient-dev"
+          command: |
+            sudo apt update
+            sudo apt install -Y default-libmysqlclient-dev
 
       - run:
-        name: "Print Cargo version"
-        command: |
-          cargo --version
+          name: "Print Cargo version"
+          command: |
+            cargo --version
 
       - run:
-        name: "Print rustc version"
-        command: |
-          rustc --version
+          name: "Print rustc version"
+          command: |
+            rustc --version
 
       - run:
-        name: "Change dir to repository and build project (Dev mode)"
-        command: |
-          cd ~/pitboss
-          cargo build
+          name: "Change dir to repository and build project (Dev mode)"
+          command: |
+            cd ~/pitboss
+            cargo build
 
       - save_cache:
           key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
