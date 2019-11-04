@@ -7,7 +7,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-        key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+          key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
 
       - run:
         name: "Install libmysqlclient-dev"
@@ -32,6 +32,6 @@ jobs:
           cargo build
 
       - save_cache:
-        key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
-        paths:
-          - ~/pitboss/target
+          key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - ~/pitboss/target
