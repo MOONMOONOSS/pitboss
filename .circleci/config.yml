@@ -1,0 +1,29 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/rust:buster
+    
+    steps:
+      - checkout # Checks out the repository
+
+      - run:
+        name: "Install libmysqlclient-dev"
+        command: |
+          sudo apt update
+          sudo apt install -Y default-libmysqlclient-dev
+
+      - run:
+        name: "Print Cargo version"
+        command: |
+          cargo --version
+
+      - run:
+        name: "Print rustc version"
+        command: |
+          rustc --version
+
+      - run:
+        name: "Change dir to repository and build project (Dev mode)"
+        command: |
+          cargo build
