@@ -10,11 +10,6 @@ jobs:
           key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
 
       - run:
-          name: "Install libmysqlclient-dev"
-          command: |
-            sudo apt update && sudo apt install -y default-libmysqlclient-dev
-
-      - run:
           name: "Print Cargo version"
           command: |
             cargo --version
