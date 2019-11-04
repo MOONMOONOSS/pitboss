@@ -1,0 +1,34 @@
+version: 2
+jobs:
+  build:
+    branches:
+      only:
+        - master
+    docker:
+      - image: circleci/rust:buster
+    
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+
+      - run:
+          name: "Print Cargo version"
+          command: |
+            cargo --version
+
+      - run:
+          name: "Print rustc version"
+          command: |
+            rustc --version
+
+      - run:
+          name: "Change dir to repository and build project (Dev mode)"
+          command: |
+            cd ~/project
+            cargo build
+
+      - save_cache:
+          key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - ~/project/target
