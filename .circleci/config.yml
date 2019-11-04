@@ -33,4 +33,5 @@ jobs:
 
       - save_cache: # Caches our build objects with a cache key
         key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
-        paths: - ~/pitboss/target
+        paths:
+          - ~/pitboss/target
