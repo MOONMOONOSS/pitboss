@@ -5,8 +5,8 @@ jobs:
       - image: circleci/rust:buster
     
     steps:
-      - checkout       # Checks out the repository
-      - restore_cache: # Restores our build objects
+      - checkout
+      - restore_cache:
         key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
 
       - run:
@@ -31,7 +31,7 @@ jobs:
           cd ~/pitboss
           cargo build
 
-      - save_cache: # Caches our build objects with a cache key
+      - save_cache:
         key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
         paths:
           - ~/pitboss/target
