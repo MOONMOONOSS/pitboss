@@ -5,7 +5,9 @@ jobs:
       - image: circleci/rust:buster
     
     steps:
-      - checkout # Checks out the repository
+      - checkout       # Checks out the repository
+      - restore_cache: # Restores our build objects
+        key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
 
       - run:
         name: "Install libmysqlclient-dev"
@@ -26,4 +28,9 @@ jobs:
       - run:
         name: "Change dir to repository and build project (Dev mode)"
         command: |
+          cd ~/pitboss
           cargo build
+
+      - save_cache: # Caches our build objects with a cache key
+        key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+        paths: - ~/pitboss/target
