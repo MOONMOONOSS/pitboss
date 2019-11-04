@@ -1,3 +1,4 @@
+#![allow(clippy::useless_let_if_seq)]
 #[macro_use]
 extern crate diesel;
 
@@ -324,6 +325,43 @@ fn is_usr_mention(
   }
 }
 
+#[check]
+#[name = "CommandEnabled"]
+fn enable_check(
+  ctx: &mut Context,
+  msg: &Message,
+  _: &mut Args,
+  com_opts: &CommandOptions,
+) -> CheckResult {
+  let title = "boss has been disabled.";
+  let mut prefix: &str = "";
+  let mut should_terminate = false;
+
+  if !CONFIG.discord.commands.enable_pitboss && com_opts.names[0].contains("pit") {
+    prefix = "Pit";
+    should_terminate = true;
+  }
+  if !CONFIG.discord.commands.enable_banboss && com_opts.names[0].contains("ban") {
+    prefix = "Ban";
+    should_terminate = true;
+  }
+
+  if should_terminate {
+    let _ = msg.channel_id.send_message(&ctx, |m| {
+      m.embed(|e| {
+        e.title("Command Disabled");
+        e.description(prefix.to_owned() + title);
+        e.color(Colour::new(0x00FF_0000));
+        e.footer(|f| f.text(EMBED_FOOTER))
+      })
+    });
+
+    return CheckResult::new_log("Pitboss is disabled.");
+  }
+
+  true.into()
+}
+
 fn mention_to_user_id(args: &mut Args) -> UserId {
   let mut usr = args.single_quoted::<String>().unwrap();
 
@@ -355,7 +393,7 @@ fn main() {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin, UserMention)]
+#[checks(Admin, CommandEnabled, UserMention)]
 fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
@@ -462,7 +500,7 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin, UserMention)]
+#[checks(Admin, CommandEnabled, UserMention)]
 fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
@@ -506,7 +544,7 @@ fn force_unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin, UserMention)]
+#[checks(Admin, CommandEnabled, UserMention)]
 fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
@@ -576,7 +614,7 @@ fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin, UserMention)]
+#[checks(Admin, CommandEnabled, UserMention)]
 fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
@@ -686,7 +724,7 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[max_args(1)]
 #[only_in(guilds)]
 #[bucket = "pitboss"]
-#[checks(Admin, UserMention)]
+#[checks(Admin, CommandEnabled, UserMention)]
 fn unpit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
   let usr = mention_to_user_id(&mut args);
 
