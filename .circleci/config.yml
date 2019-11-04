@@ -10,7 +10,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+          key: v1-pitboss
 
       - run:
           name: "Print Cargo version"
@@ -29,6 +29,6 @@ jobs:
             cargo build
 
       - save_cache:
-          key: v1-pitboss-{{ .Environment.CIRCLE_SHA1 }}
+          key: v1-pitboss
           paths:
             - ~/project/target
