@@ -9,6 +9,9 @@ discord:
     - 82982763317166080   # Dunkel
   report_channel: 640320882086248483
   pit_role: 598687735296950282
+  commands:
+    enable_pitboss: true
+    enable_banboss: true
   token: token
   ban_evade_msg: 
     title: MOONMOON Moderation Notice

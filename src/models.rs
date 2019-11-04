@@ -28,6 +28,12 @@ pub struct NewUserPit {
 
 // SerdeYAML Models
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommandSchema {
+  pub enable_pitboss: bool,
+  pub enable_banboss: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ConfigSchema {
   pub discord: DiscordConfig,
 }
@@ -39,6 +45,7 @@ pub struct DiscordConfig {
   pub admin_users: Vec<u64>,
   pub report_channel: u64,
   pub pit_role: u64,
+  pub commands: CommandSchema,
   pub token: String,
   pub ban_evade_msg: Embed,
   pub ban_msg: Embed,
