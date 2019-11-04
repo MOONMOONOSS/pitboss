@@ -10,6 +10,7 @@ use diesel::{
   mysql::MysqlConnection,
   prelude::*,
   r2d2::{ConnectionManager, Pool},
+  result::{Error as DieselError, DatabaseErrorKind},
   RunQueryDsl,
 };
 use dotenv::dotenv;
@@ -475,20 +476,41 @@ fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
       }
     }
     Err(e) => {
-      println!("Error adding ban: {:?}", e);
-
-      msg.channel_id.send_message(&ctx, |m| {
-        m.content(format!("**TRACE LOG**\n```{:?}```", e));
-        m.embed(|e| {
-          e.title("Ban failed!");
-          e.description(format!(
-            "<@{}> has NOT been banned.\nPlease try again later",
-            *usr.as_u64()
-          ));
-          e.color(Colour::new(0x00FF_0000));
-          e.footer(|f| f.text(EMBED_FOOTER))
-        })
-      })?;
+      match e {
+        DieselError::DatabaseError(err_type, _) => {
+          match err_type {
+            DatabaseErrorKind::UniqueViolation => {
+              msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                  e.title("User already banned");
+                  e.description(format!(
+                    "<@{}> is already banned.",
+                    *usr.as_u64()
+                  ));
+                  e.color(Colour::new(0x00FF_0000));
+                  e.footer(|f| f.text(EMBED_FOOTER))
+                })
+              })?;
+            },
+            _ => {},
+          }
+        },
+        _ => {
+          println!("Error adding ban: {:?}", e);
+          msg.channel_id.send_message(&ctx, |m| {
+            m.content(format!("**TRACE LOG**\n```{:?}```", e));
+            m.embed(|e| {
+              e.title("Banning failed!");
+              e.description(format!(
+                "<@{}> has NOT been banned.\nPlease try again later",
+                *usr.as_u64()
+              ));
+              e.color(Colour::new(0x00FF_0000));
+              e.footer(|f| f.text(EMBED_FOOTER))
+            })
+          })?;
+        }
+      }
 
       Ok(())
     }
@@ -699,20 +721,41 @@ fn pit(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
       }
     }
     Err(e) => {
-      println!("Error adding pit: {:?}", e);
-
-      msg.channel_id.send_message(&ctx, |m| {
-        m.content(format!("**TRACE LOG**\n```{:?}```", e));
-        m.embed(|e| {
-          e.title("Pitting failed!");
-          e.description(format!(
-            "<@{}> has NOT been pitted.\nPlease try again later",
-            *usr.as_u64()
-          ));
-          e.color(Colour::new(0x00FF_0000));
-          e.footer(|f| f.text(EMBED_FOOTER))
-        })
-      })?;
+      match e {
+        DieselError::DatabaseError(err_type, _) => {
+          match err_type {
+            DatabaseErrorKind::UniqueViolation => {
+              msg.channel_id.send_message(&ctx, |m| {
+                m.embed(|e| {
+                  e.title("User already pitted");
+                  e.description(format!(
+                    "<@{}> is already in THE PIT.",
+                    *usr.as_u64()
+                  ));
+                  e.color(Colour::new(0x00FF_0000));
+                  e.footer(|f| f.text(EMBED_FOOTER))
+                })
+              })?;
+            },
+            _ => {},
+          }
+        },
+        _ => {
+          println!("Error adding pit: {:?}", e);
+          msg.channel_id.send_message(&ctx, |m| {
+            m.content(format!("**TRACE LOG**\n```{:?}```", e));
+            m.embed(|e| {
+              e.title("Pitting failed!");
+              e.description(format!(
+                "<@{}> has NOT been pitted.\nPlease try again later",
+                *usr.as_u64()
+              ));
+              e.color(Colour::new(0x00FF_0000));
+              e.footer(|f| f.text(EMBED_FOOTER))
+            })
+          })?;
+        }
+      }
 
       Ok(())
     }
