@@ -71,120 +71,114 @@ impl EventHandler for Handler {
       _ => {
         println!("HEY! Record found for {}!", user_id);
 
-        match res[0].banned {
-          true => {
-            let usr = new_member.user_id();
-            let member = GuildId(CONFIG.discord.guild_id)
-              .member(&ctx, *usr.as_u64())
-              .unwrap();
+        if res[0].banned {
+          let usr = new_member.user_id();
+          let member = GuildId(CONFIG.discord.guild_id)
+            .member(&ctx, *usr.as_u64())
+            .unwrap();
 
-            let usr_obj = member.user_id().to_user(&ctx).unwrap();
-            let _ = usr_obj.direct_message(&ctx, |m| {
-              m.embed(|e| {
-                e.title(&CONFIG.discord.ban_evade_msg.title);
-                e.description(&CONFIG.discord.ban_evade_msg.subtitle);
-                e.color(Colour::new(CONFIG.discord.ban_evade_msg.color));
-                e.field(
-                  &CONFIG.discord.ban_evade_msg.attract,
-                  &CONFIG.discord.ban_evade_msg.warning,
-                  true,
-                );
-                e.footer(|f| f.text(EMBED_FOOTER))
-              })
-            });
+          let usr_obj = member.user_id().to_user(&ctx).unwrap();
+          let _ = usr_obj.direct_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title(&CONFIG.discord.ban_evade_msg.title);
+              e.description(&CONFIG.discord.ban_evade_msg.subtitle);
+              e.color(Colour::new(CONFIG.discord.ban_evade_msg.color));
+              e.field(
+                &CONFIG.discord.ban_evade_msg.attract,
+                &CONFIG.discord.ban_evade_msg.warning,
+                true,
+              );
+              e.footer(|f| f.text(EMBED_FOOTER))
+            })
+          });
 
-            match member.ban(&ctx, &7) {
-              Ok(_) => (),
-              Err(e) => {
-                let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
-                  m.content(format!("**TRACE LOG**\n```{:?}```", e));
-                  m.embed(|e| {
-                    e.title("Banning failed!");
-                    e.description(format!(
-                      "<@{}> is on the Banboss watchlist and wasn't banned!",
-                      *usr.as_u64()
-                    ));
-                    e.color(Colour::new(0x00FF_0000));
-                    e.footer(|f| f.text(EMBED_FOOTER))
-                  })
-                });
+          match member.ban(&ctx, &7) {
+            Ok(_) => (),
+            Err(e) => {
+              let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+                m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                m.embed(|e| {
+                  e.title("Banning failed!");
+                  e.description(format!(
+                    "<@{}> is on the Banboss watchlist and wasn't banned!",
+                    *usr.as_u64()
+                  ));
+                  e.color(Colour::new(0x00FF_0000));
+                  e.footer(|f| f.text(EMBED_FOOTER))
+                })
+              });
 
-                return;
-              }
+              return;
             }
-
-            let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
-              m.embed(|e| {
-                e.title("Banboss Success");
-                e.description(format!(
-                  "<@{}> is on the Banboss watchlist and was banned.",
-                  *usr.as_u64()
-                ));
-                e.color(Colour::new(0x0000_960C));
-                e.footer(|f| f.text(EMBED_FOOTER))
-              })
-            });
-
-            return;
           }
-          false => {}
+
+          let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title("Banboss Success");
+              e.description(format!(
+                "<@{}> is on the Banboss watchlist and was banned.",
+                *usr.as_u64()
+              ));
+              e.color(Colour::new(0x0000_960C));
+              e.footer(|f| f.text(EMBED_FOOTER))
+            })
+          });
+
+          return;
         }
-        match res[0].pitted {
-          true => {
-            let usr = new_member.user_id();
-            let mut member = GuildId(CONFIG.discord.guild_id)
-              .member(&ctx, *usr.as_u64())
-              .unwrap();
+        if res[0].pitted {
+          let usr = new_member.user_id();
+          let mut member = GuildId(CONFIG.discord.guild_id)
+            .member(&ctx, *usr.as_u64())
+            .unwrap();
 
-            // Add pit role to user
-            match member.add_role(&ctx, CONFIG.discord.pit_role) {
-              Ok(_) => (),
-              Err(e) => {
-                let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
-                  m.content(format!("**TRACE LOG**\n```{:?}```", e));
-                  m.embed(|e| {
-                    e.title("Pitting failed!");
-                    e.description(format!(
-                      "<@{}> is on the Pitboss watchlist and wasn't pitted!",
-                      *usr.as_u64()
-                    ));
-                    e.color(Colour::new(0x00FF_0000));
-                    e.footer(|f| f.text(EMBED_FOOTER))
-                  })
-                });
+          // Add pit role to user
+          match member.add_role(&ctx, CONFIG.discord.pit_role) {
+            Ok(_) => (),
+            Err(e) => {
+              let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+                m.content(format!("**TRACE LOG**\n```{:?}```", e));
+                m.embed(|e| {
+                  e.title("Pitting failed!");
+                  e.description(format!(
+                    "<@{}> is on the Pitboss watchlist and wasn't pitted!",
+                    *usr.as_u64()
+                  ));
+                  e.color(Colour::new(0x00FF_0000));
+                  e.footer(|f| f.text(EMBED_FOOTER))
+                })
+              });
 
-                return;
-              }
+              return;
             }
-
-            // Direct message user to explain they have been pitted.
-            let usr_obj = member.user_id().to_user(&ctx).unwrap();
-            let _ = usr_obj.direct_message(&ctx, |m| {
-              m.embed(|e| {
-                e.title(&CONFIG.discord.pit_evade_msg.title);
-                e.description(&CONFIG.discord.pit_evade_msg.subtitle);
-                e.color(Colour::new(CONFIG.discord.pit_evade_msg.color));
-                e.field(
-                  &CONFIG.discord.pit_evade_msg.attract,
-                  &CONFIG.discord.pit_evade_msg.warning,
-                  true,
-                );
-                e.footer(|f| f.text(EMBED_FOOTER))
-              })
-            });
-            let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
-              m.embed(|e| {
-                e.title("Pitboss Success");
-                e.description(format!(
-                  "<@{}> is on the Pitboss watchlist and was pitted",
-                  *usr.as_u64()
-                ));
-                e.color(Colour::new(0x0000_960C));
-                e.footer(|f| f.text(EMBED_FOOTER))
-              })
-            });
           }
-          false => {}
+
+          // Direct message user to explain they have been pitted.
+          let usr_obj = member.user_id().to_user(&ctx).unwrap();
+          let _ = usr_obj.direct_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title(&CONFIG.discord.pit_evade_msg.title);
+              e.description(&CONFIG.discord.pit_evade_msg.subtitle);
+              e.color(Colour::new(CONFIG.discord.pit_evade_msg.color));
+              e.field(
+                &CONFIG.discord.pit_evade_msg.attract,
+                &CONFIG.discord.pit_evade_msg.warning,
+                true,
+              );
+              e.footer(|f| f.text(EMBED_FOOTER))
+            })
+          });
+          let _ = ChannelId(CONFIG.discord.report_channel).send_message(&ctx, |m| {
+            m.embed(|e| {
+              e.title("Pitboss Success");
+              e.description(format!(
+                "<@{}> is on the Pitboss watchlist and was pitted",
+                *usr.as_u64()
+              ));
+              e.color(Colour::new(0x0000_960C));
+              e.footer(|f| f.text(EMBED_FOOTER))
+            })
+          });
         }
       }
     }
@@ -212,9 +206,9 @@ fn add_ban(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> 
   };
   let conn = POOL.get().unwrap();
 
-  r#try!(diesel::insert_into(pitboss::table)
+  diesel::insert_into(pitboss::table)
     .values(&new_usr)
-    .execute(&conn));
+    .execute(&conn)?;
 
   pitboss::table.order(pitboss::id.desc()).first(&conn)
 }
@@ -229,9 +223,9 @@ fn add_pit(id: u64, moderator: u64) -> Result<UserModel, diesel::result::Error> 
   };
   let conn = POOL.get().unwrap();
 
-  r#try!(diesel::insert_into(pitboss::table)
+  diesel::insert_into(pitboss::table)
     .values(&new_usr)
-    .execute(&conn));
+    .execute(&conn)?;
 
   pitboss::table.order(pitboss::id.desc()).first(&conn)
 }
@@ -256,7 +250,7 @@ fn rem_usr(_id: u64) -> Result<(), diesel::result::Error> {
   use self::schema::pitboss::dsl::*;
 
   let conn = POOL.get().unwrap();
-  r#try!(diesel::delete(pitboss.filter(id.eq(_id))).execute(&conn));
+  diesel::delete(pitboss.filter(id.eq(_id))).execute(&conn)?;
 
   Ok(())
 }
@@ -299,9 +293,10 @@ fn is_authorized_usr(
     return CheckResult::new_log("User issued command from wrong guild");
   }
 
-  match is_admin {
-    true => true.into(),
-    false => CheckResult::new_log("User lacked permission"),
+  if is_admin {
+    true.into()
+  } else {
+    CheckResult::new_log("User lacked permission")
   }
 }
 
@@ -322,9 +317,10 @@ fn is_usr_mention(
   let usr = mention_to_user_id(args);
 
   // Is the argument a valid @ mention and not a self @ mention?
-  match prefix == *"<@" && postfix == *">" && msg.author.id != usr {
-    true => true.into(),
-    false => CheckResult::new_log("Supplied arguments doesn't include a mentioned user"),
+  if prefix == *"<@" && postfix == *">" && msg.author.id != usr {
+    true.into()
+  } else {
+    CheckResult::new_log("Supplied arguments doesn't include a mentioned user")
   }
 }
 
